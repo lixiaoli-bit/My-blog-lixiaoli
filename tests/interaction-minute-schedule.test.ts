@@ -5,6 +5,8 @@ import { parseScheduleText } from '../src/cadence/entities/schedule/nl';
 import { createEvent, updateEventDetails, moveEvent, resizeEvent } from '../src/cadence/features/schedule/usecases';
 import type { ScheduleDeps } from '../src/cadence/features/schedule/usecases';
 import type { ScheduleEvent } from '../src/cadence/entities/schedule/model';
+import { planCadenceChanges } from '../src/lib/cadence-store';
+import type { SyncChange } from '../src/cadence/sync/protocol';
 function fixture() {
   const rows = new Map<string, ScheduleEvent>();
   const deps = { database: { scheduleEvents: { where: () => ({ equals: () => ({ toArray: async () => [...rows.values()] }) }), put: async (value: ScheduleEvent) => { rows.set(value.id, value); } } } } as unknown as ScheduleDeps;
@@ -26,4 +28,28 @@ it('creates, edits, moves and resizes exact one-minute events without rounding',
 });
 it('natural language retains an arbitrary minute start/end', () => {
   expect(parseScheduleText('09:07到09:08阅读').items[0]).toMatchObject({ startMin: 547, endMin: 548 });
+});
+
+function scheduleChange(id: string, startMin: number, endMin: number, dateKey = '2026-10-11'): SyncChange {
+  return { table: 'scheduleEvents', recordId: id, baseRevision: null,
+    payload: { id, dateKey, startMin, endMin, title: 'minute sync', done: false, createdAt: 1, updatedAt: 1 } };
+}
+it('cloud sync preserves arbitrary minutes and accepts an update ending at midnight', () => {
+  const first = planCadenceChanges([], [scheduleChange('minute', 547, 548)]);
+  expect(first.conflicts).toEqual([]);
+  expect(first.records[0]?.payload).toMatchObject({ startMin: 547, endMin: 548 });
+  const next = planCadenceChanges(first.records, [{ ...scheduleChange('minute', 1439, 1440), baseRevision: first.records[0]!.revision }]);
+  expect(next.conflicts).toEqual([]);
+  expect(next.records[0]?.payload).toMatchObject({ startMin: 1439, endMin: 1440 });
+});
+it.each([[547, 547], [548, 547], [-1, 1], [1439, 1441], [1440, 1441], [547.5, 548.5], [NaN, 548], [547, Infinity]])(
+  'cloud sync rejects an invalid span %s–%s', (start, end) => {
+    expect(() => planCadenceChanges([], [scheduleChange('invalid', start, end)])).toThrow('整数分钟');
+  },
+);
+it('cloud sync rejects overlaps but accepts touching events and the same time on different days', () => {
+  const first = planCadenceChanges([], [scheduleChange('first', 547, 549)]);
+  expect(() => planCadenceChanges(first.records, [scheduleChange('overlap', 548, 550)])).toThrow('重叠');
+  expect(planCadenceChanges(first.records, [scheduleChange('touch', 549, 550)]).conflicts).toEqual([]);
+  expect(planCadenceChanges(first.records, [scheduleChange('next-day', 547, 548, '2026-10-12')]).conflicts).toEqual([]);
 });

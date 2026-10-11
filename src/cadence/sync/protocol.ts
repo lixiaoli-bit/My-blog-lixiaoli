@@ -1,4 +1,5 @@
 /** 同步协议仅依赖 JSON。revision 是服务端生成的 CAS 令牌。 */
+import { validTimeSpan } from "../entities/schedule/time-input";
 export const SYNC_VERSION = 1;
 export const SYNC_TABLES = [
   "plans",
@@ -116,8 +117,8 @@ export function validateCadenceSnapshot(records: RemoteRecord[]): void {
       const start = Number(p.startMin),
         end = Number(p.endMin),
         day = String(p.dateKey);
-      if (end - start < 15 || start % 15 || end % 15)
-        throw new Error("日程需以 15 分钟对齐，且至少持续 15 分钟");
+      if (!validTimeSpan(start, end))
+        throw new Error("日程需使用当天的整数分钟，且至少持续 1 分钟");
       const spans = days.get(day) ?? [];
       if (spans.some((s) => start < s.end && s.start < end))
         throw new Error(`${day} 的日程时间重叠，请调整本地安排后重试`);
