@@ -34,8 +34,9 @@ describe('API 逐项权限边界', () => {
     ['/api/ai/config', 'PUT', 'settings'],
     ['/api/ai/test', 'POST', 'settings'],
   ])('%s %s 需要 %s 权限（含尾斜杠形式）', (path, method, permission) => {
-    expect(requiredApiPermission(path, method)).toEqual([permission]);
-    expect(requiredApiPermission(path + '/', method)).toEqual([permission]);
+    const expected = path.startsWith('/api/mindmaps') ? ['articles', 'docs'] : [permission];
+    expect(requiredApiPermission(path, method)).toEqual(expected);
+    expect(requiredApiPermission(path + '/', method)).toEqual(expected);
   });
 
   it.each([
@@ -44,6 +45,7 @@ describe('API 逐项权限边界', () => {
     ['/api/images/image-id', 'GET'],
     ['/api/mindmaps', 'GET'],
     ['/api/mindmaps/map-id', 'GET'],
+    ['/api/mindmaps/map-id/render', 'POST'],
     ['/api/doc', 'GET'],
     ['/api/doc/search', 'GET'],
     ['/api/doc/nodes/node-id/render', 'GET'],
@@ -58,6 +60,7 @@ describe('API 逐项权限边界', () => {
   });
 
   it('AI 记忆与总结仅允许站主', () => {
+    expect(requiredApiPermission('/api/ai/mindmaps', 'POST')).toBe('top');
     for (const method of ['GET', 'PATCH', 'DELETE']) {
       expect(requiredApiPermission('/api/ai/memory', method)).toBe('top');
     }

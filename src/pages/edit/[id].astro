@@ -75,6 +75,7 @@ const settingsArticle = {
       <button id="home-create-article" type="button" class="mt-2 rounded-md border border-border px-3 py-1 text-xs text-muted-foreground hover:text-primary">＋ 新建文章</button>
       <button id="home-article-settings" type="button" class="mt-2 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:text-primary">文章设置</button>
       <button id="doc-inline-edit" type="button" class="mt-2 shrink-0 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary">编辑</button>
+      <button data-map-open type="button" class="mt-2">思维导图</button>
       <ExportMenu mdUrl={`/api/export/article/${encodeURIComponent(article.slug)}`} class="mt-1.5" />
       {isOwner && <ArticleCoverGenerator client:load articleId={article.id} />}
     </Fragment>

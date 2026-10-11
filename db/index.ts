@@ -104,6 +104,13 @@ function createDrizzle(ep: DbEndpoint, index: number): BlogDb {
     client.exec('CREATE INDEX IF NOT EXISTS article_categories_parent_idx ON article_categories(parent_id)');
   }
   const { drizzle: drizzleBetterSqlite } = requireHere(SQLITE_DRIZZLE_PKG);
+  const mapColumns = client.pragma('table_info(mindmaps)') as Array<{ name: string }>;
+  if (mapColumns.length && !mapColumns.some(column => column.name === 'revision')) {
+    client.exec('ALTER TABLE mindmaps ADD COLUMN revision integer NOT NULL DEFAULT 0');
+  }
+  client.exec(`CREATE TABLE IF NOT EXISTS mindmap_bindings (id text PRIMARY KEY NOT NULL, domain text NOT NULL, target_id text NOT NULL, map_id text NOT NULL, updated_at integer NOT NULL);
+    CREATE TABLE IF NOT EXISTS source_block_indexes (id text PRIMARY KEY NOT NULL, data text NOT NULL, updated_at integer NOT NULL);
+    CREATE TABLE IF NOT EXISTS mindmap_backups (id text PRIMARY KEY NOT NULL, map_id text NOT NULL, data text NOT NULL, updated_at integer NOT NULL);`);
   return drizzleBetterSqlite(client, { schema: sqliteSchema }) as unknown as BlogDb;
 }
 

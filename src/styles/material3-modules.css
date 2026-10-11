@@ -67,7 +67,7 @@ html[data-ui-style='material3'] :is(.toc-item, .toc-link) { color: var(--m3-on-s
 html[data-ui-style='material3'] :is(.toc-item.toc-active, .toc-link[data-active='true'], #doc-ltoc-body [data-doc-node-id][aria-current='page']) { color: var(--m3-on-secondary-container); background: var(--m3-secondary-container); }
 html[data-ui-style='material3'] #doc-ltoc-body [data-doc-node-id] { border-radius: 9999px; padding-block: 10px; }
 html[data-ui-style='material3'] .doc-main-col { border-left: 1px solid var(--m3-outline-variant); }
-html[data-ui-style='material3'] #doc-inline-edit.doc-entry-active { background: var(--m3-secondary-container); color: var(--m3-on-secondary-container); border-color: transparent; }
+html[data-ui-style='material3'] :is(#doc-inline-edit, #doc-inline-preview, #doc-inline-source).doc-entry-active { background: var(--m3-secondary-container); color: var(--m3-on-secondary-container); border-color: transparent; }
 html[data-ui-style='material3'] :is(#doc-toc-overlay, .lightbox-overlay) { background-color: color-mix(in srgb, var(--m3-scrim) 64%, transparent); }
 html[data-ui-style='material3'] .lightbox-overlay :is(.lightbox-close, .lightbox-prev, .lightbox-next) { min-width: 48px; min-height: 48px; border: 0; border-radius: 9999px; background: var(--m3-inverse-surface); color: var(--m3-inverse-on-surface); box-shadow: var(--m3-elevation-1); }
 html[data-ui-style='material3'] .lightbox-overlay .lightbox-count { border-radius: 9999px; background: var(--m3-inverse-surface); color: var(--m3-inverse-on-surface); padding: 6px 12px; }

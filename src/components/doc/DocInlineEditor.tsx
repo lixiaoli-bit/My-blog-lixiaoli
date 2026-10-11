@@ -49,7 +49,7 @@ import { discardArticleField, flushPendingArticleSaves, pendingArticleField, rem
 import type { TocItem } from '@/lib/mdx-plugins';
 import { indexOfNthHeading, pickNearestViewAnchor } from '@/lib/view-anchor';
 import type { ViewAnchor } from '@/lib/view-anchor';
-import { instantScrollTo, prefetchDocNode, takePrefetchedDocNode } from '@/lib/doc-viewport';
+import { instantScrollTo, prefetchDocNode, takePrefetchedDocNode, invalidatePrefetchedDocNode } from '@/lib/doc-viewport';
 
 /** 自动保存防抖（ms）：停顿 1.5s 即静默 PATCH */
 const AUTOSAVE_DEBOUNCE = 1500;
@@ -67,8 +67,9 @@ declare global {
   interface Window {
     /** 供 .astro 页面脚本调用（ClientRouter SPA 下会重新挂载，故用 window 桥接） */
     __docInlineEditor?: {
-      open: () => void;
+      open: (mode?: 'visual' | 'source') => void;
       saveAndClose?: () => void;
+      flush?: () => Promise<boolean>;
       openSearch?: () => boolean;
       /** 编辑态目录点击跳转：跳到第 nth 个（0 起）level 级标题；返回是否命中 */
       jumpToHeading?: (level: number, nth: number) => boolean;
@@ -286,13 +287,21 @@ function syncNodeUpdatedAt(id: string, updatedAt?: string): void {
 }
 
 /** 同步标题旁与右侧悬浮框的编辑入口按钮（进入编辑 → 「完成」态；退出还原） */
-function syncEntryButtons(editing: boolean): void {
+function syncEntryButtons(editing: boolean, mode: 'visual' | 'source' = 'visual'): void {
   const mainBtn = document.getElementById('doc-inline-edit');
   if (mainBtn) {
-    mainBtn.textContent = editing ? '完成' : '编辑';
-    mainBtn.title = editing ? '保存并退出编辑' : '原地编辑本文';
-    mainBtn.setAttribute('aria-label', editing ? '保存并退出编辑' : '原地编辑本文');
-    mainBtn.classList.toggle('doc-entry-active', editing);
+    const modes = !!document.getElementById('doc-inline-preview');
+    mainBtn.textContent = modes ? '编辑' : editing ? '完成' : '编辑';
+    mainBtn.title = modes ? '可视编辑本文' : editing ? '保存并退出编辑' : '原地编辑本文';
+    mainBtn.setAttribute('aria-label', modes ? '可视编辑本文' : editing ? '保存并退出编辑' : '原地编辑本文');
+    if (modes) mainBtn.setAttribute('aria-pressed', String(editing && mode === 'visual'));
+    mainBtn.classList.toggle('doc-entry-active', editing && (!modes || mode === 'visual'));
+  }
+  for (const [id, selected] of [['doc-inline-preview', !editing], ['doc-inline-source', editing && mode === 'source']] as const) {
+    const button = document.getElementById(id);
+    button?.setAttribute('aria-pressed', String(selected));
+    button?.classList.toggle('text-primary', selected);
+    button?.classList.toggle('doc-entry-active', selected);
   }
   const railBtn = document.getElementById('rt-doc-inline-edit');
   if (railBtn) {
@@ -317,6 +326,10 @@ export default function DocInlineEditor(): ReactElement {
   const aiApplyingRef = useRef(false);
   const aiLockedRef = useRef(false);
   const [open, setOpen] = useState(false);
+  const [sourceMode, setSourceMode] = useState(false);
+  const sourceModeRef = useRef(sourceMode);
+  sourceModeRef.current = sourceMode;
+  const [sourceBusy, setSourceBusy] = useState(false);
   const [content, setContent] = useState('');
   const [visualModule, setVisualModule] = useState<typeof import('../admin/cm-wysiwyg') | null>(null);
   const [phase, setPhase] = useState<'idle' | 'loading' | 'saving'>('idle');
@@ -437,6 +450,7 @@ export default function DocInlineEditor(): ReactElement {
         () => session.content,
         async (snapshot) => {
           const saved = await saveArticleSnapshot(saveUrl, { content: snapshot }) as { node?: { updatedAt?: string } };
+          invalidatePrefetchedDocNode(id);
           syncNodeUpdatedAt(id, saved.node?.updatedAt);
           if (saveSessionRef.current === session) savedRef.current = true;
         },
@@ -712,15 +726,22 @@ export default function DocInlineEditor(): ReactElement {
       document.getElementById('doc-3col')?.setAttribute('data-editing', 'true');
       titleSessionRef.current?.close();
       titleSessionRef.current = activateInlineArticleTitle(id, setError);
-      syncEntryButtons(true);
+      syncEntryButtons(true, sourceModeRef.current ? 'source' : 'visual');
       setPhase('idle');
     });
   }, [applyAnchor, markUserScroll]);
 
   /** 打开：即时反馈 → 拉源码（预取命中则零等待）→ 计算视口高 → 原位替换正文 */
-  const openEditor = useCallback(async () => {
+  const openEditor = useCallback(async (mode: 'visual' | 'source' = 'visual') => {
     const id = readActiveNodeId();
-    if (!id || open || busyRef.current) return;
+    if (!id || busyRef.current || aiLockedRef.current) return;
+    if (open) {
+      editorRef.current?.flushInputs();
+      setSourceMode(mode === 'source');
+      syncEntryButtons(true, mode);
+      return;
+    }
+    setSourceMode(mode === 'source');
     busyRef.current = true;
     const controller = new AbortController();
     const opening = { id, controller };
@@ -760,6 +781,7 @@ export default function DocInlineEditor(): ReactElement {
         text = content;
       }
       const readyVisualModule = await import('../admin/cm-wysiwyg');
+      if (!isHomeArticle()) invalidatePrefetchedDocNode(id);
       await registerArticleBaseline(articleApiUrl(id), text);
       if (controller.signal.aborted || openingRef.current !== opening || !hostRef.current?.isConnected || readActiveNodeId() !== id) return;
       const pendingContent = pendingArticleField(articleApiUrl(id), 'content');
@@ -793,7 +815,7 @@ export default function DocInlineEditor(): ReactElement {
       fitRef.current = true;
       setViewH(0);
       setOpen(true);
-      syncEntryButtons(true);
+      syncEntryButtons(true, sourceModeRef.current ? 'source' : 'visual');
       setPhase('idle');
     } finally {
       if (openingRef.current === opening) {
@@ -827,6 +849,7 @@ export default function DocInlineEditor(): ReactElement {
         try { editorRef.current?.applyAiSource(source); contentRef.current = source; session.content = source; }
         finally { aiApplyingRef.current = false; }
         discardArticleField(session.url, 'content'); saveQueueRef.current = null;
+        invalidatePrefetchedDocNode(session.id);
         if(contentHash)setArticleContentVersion(session.url,contentHash);
         dirtyRef.current = false; savedRef.current = true; refreshToc();
       },
@@ -835,8 +858,14 @@ export default function DocInlineEditor(): ReactElement {
 
   useEffect(() => {
     window.__docInlineEditor = {
-      open: () => void openEditor(),
+      open: mode => void openEditor(mode),
       saveAndClose: handleSaveAndClose,
+      flush: async () => {
+        editorRef.current?.flushInputs(); window.clearTimeout(saveTimer.current);
+        if (saveSessionRef.current && !(await saveCoreRef.current())) return false;
+        if (titleSessionRef.current && !(await titleSessionRef.current.flush())) return false;
+        return true;
+      },
       openSearch: () => editorRef.current?.openSearch() ?? false,
       jumpToHeading: (level: number, nth: number): boolean => {
         // expectText 从快照同 level 第 nth 项取，供编辑器侧做文本一致性告警
@@ -848,6 +877,47 @@ export default function DocInlineEditor(): ReactElement {
       delete window.__docInlineEditor;
     };
   }, [openEditor, handleSaveAndClose]);
+
+  useEffect(() => { syncEntryButtons(open, sourceMode ? 'source' : 'visual'); }, [open, sourceMode]);
+
+  const sourceText = (): string => {
+    editorRef.current?.flushInputs();
+    return editorRef.current?.getSource() ?? contentRef.current;
+  };
+  const copySource = async (): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(sourceText());
+      showSaveFeedback('源码已复制', 'saved');
+    } catch { setError('复制失败，请在源码编辑器中全选并复制'); }
+  };
+  const exportMapSource = async (): Promise<void> => {
+    const id = nodeIdRef.current;
+    setSourceBusy(true);
+    setError(null);
+    try {
+      const markdown = sourceText();
+      if (!(await window.__docInlineEditor?.flush?.())) throw new Error('请先完成文章保存，再下载导图素材');
+      if (readActiveNodeId() !== id || nodeIdRef.current !== id) throw new Error('文章已切换，请重新下载');
+      const domain = isHomeArticle() ? 'article' : 'doc';
+      const response = await fetch(`/api/mindmaps/source?${new URLSearchParams({ domain, targetId: id })}`);
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || '读取导图来源失败');
+      if (readActiveNodeId() !== id || sourceText() !== markdown) throw new Error('文章内容已变化，请重新下载');
+      const { title, contentHash, blocks } = result.source;
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(markdown));
+      const localHash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+      if (localHash !== contentHash) throw new Error('文章已在其他窗口修改，请刷新并重新下载');
+      const value = { format: 'byqx-mindmap-source', version: 1, source: { domain, targetId: id, title, contentHash }, markdown, blocks };
+      const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: 'application/json;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${title.replace(/[<>:"/\\|?*]/g, '_') || '文章'}-导图素材.json`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      showSaveFeedback('导图素材已下载', 'saved');
+    } catch (cause) { setError(cause instanceof Error ? cause.message : '下载失败，请重试'); }
+    finally { setSourceBusy(false); }
+  };
 
   /** 卸载清理：未决的自动保存/目录刷新定时器 */
   useEffect(
@@ -898,6 +968,11 @@ export default function DocInlineEditor(): ReactElement {
     <div ref={hostRef} className={open ? 'doc-ie-host' : 'hidden'}>
       {open && (
         <div className="doc-ie-inner relative">
+          {sourceMode && !readFailed && <div className="mb-3 flex flex-wrap items-center gap-2 border-2 border-border bg-background px-3 py-2 text-xs shadow-[3px_3px_0_var(--neo-orange)]" role="toolbar" aria-label="源码模式工具">
+            <span className="mr-auto font-semibold">Markdown 源码</span>
+            <button type="button" className="rounded border border-border px-2.5 py-1.5" onClick={() => void copySource()}>复制源码</button>
+            <button type="button" className="rounded border border-border px-2.5 py-1.5" title="包含 Markdown 和真实内容块索引，供导图 JSON 技能使用" disabled={sourceBusy || phase === 'loading'} onClick={() => void exportMapSource()}>{sourceBusy ? '准备素材…' : '下载导图素材'}</button>
+          </div>}
           {/* 编辑器区：正文原位替换（无卡片/无边框/无工具条），高度按内容策略计算 */}
           <div className="doc-ie-view" style={{ height: autoHeight ? 'auto' : `${viewH}px` }}>
             {phase === 'loading' || !visualModule ? (
@@ -911,6 +986,7 @@ export default function DocInlineEditor(): ReactElement {
                 onChange={handleContentChange}
                 onSave={() => handleSaveAndClose()}
                 wysiwyg
+                sourceMode={sourceMode}
                 initialWysiwyg={visualModule ?? undefined}
                 variant="ghost"
                 autoHeight={autoHeight}

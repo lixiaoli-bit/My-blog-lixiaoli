@@ -32,13 +32,17 @@ export function requiredApiPermission(pathname: string, method: string): Permiss
   // handler 再按身份 kind='top' 收紧至站主本人，授权 top 管理员也不共享私人日程。
   if (pathname === '/api/cadence' || pathname.startsWith('/api/cadence/')) return 'top';
   const isWrite = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+  if (pathname === '/api/ai/mindmaps') return 'top';
   if (pathname === '/api/ai/subscription' || pathname.startsWith('/api/ai/subscription/') || pathname === '/api/ai/cover' || pathname.startsWith('/api/ai/cover/')) return 'top';
   if (pathname === '/api/ai/edit' || pathname.startsWith('/api/ai/edit/') ||
       pathname === '/api/ai/skills' || pathname.startsWith('/api/ai/skills/')) return 'top';
   // 这些端点自身只有通用 manager 守卫，需要在此补齐逐项权限。
   if (pathname === '/api/article-categories') return ['articles'];
+  // Rendering does not write. The handler checks source/password access and
+  // permits visitors to render only names already stored in this map.
+  if (/^\/api\/mindmaps\/[^/]+\/render$/.test(pathname) && method === 'POST') return null;
   if (pathname === '/api/mindmaps' || pathname.startsWith('/api/mindmaps/')) {
-    return isWrite ? ['articles'] : null;
+    return isWrite ? ['articles', 'docs'] : null;
   }
   if (
     pathname === '/api/site-css' || pathname === '/api/md-css' || pathname.startsWith('/api/md-css/') ||

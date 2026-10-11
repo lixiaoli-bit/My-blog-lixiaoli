@@ -31,6 +31,7 @@ import type { Processor } from 'unified';
 import type { Root, RootContent, Node, Paragraph } from 'mdast';
 import { footnoteDef, footnoteRef, textNode, type MdxDirectiveNode } from './mdx/nodes';
 import { remarkCallout } from './mdx/callout';
+import { remarkSourceBlocks } from './mdx/source-blocks';
 import { remarkCollapse } from './mdx/collapse';
 import { remarkTabs } from './mdx/tabs';
 import { remarkColumns } from './mdx/columns';
@@ -982,6 +983,7 @@ export function remarkFixGfmAutolink(this: Processor) {
 /** remark 插件数组（evaluate 与预览共用） */
 export const remarkPlugins = [
   remarkGfm,
+  remarkSourceBlocks,
   remarkFixGfmAutolink,
   remarkMath,
   remarkDirective,

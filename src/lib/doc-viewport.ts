@@ -51,13 +51,13 @@ export function prefetchDocNode(id: string): void {
   const p = fetch(`/api/doc/nodes/${id}`, { signal: AbortSignal.timeout(15000) })
     .then((r) => (r.ok ? r.json() : null))
     .then((d: { node?: { content?: string } } | null) => {
-      if (typeof d?.node?.content === 'string') prefetchCache.set(id, d.node.content);
+      if (prefetchInflight.get(id) === p && typeof d?.node?.content === 'string') prefetchCache.set(id, d.node.content);
     })
     .catch(() => {
       /* 预取失败静默：正式打开时会再拉一次，不能因预取失败影响主流程 */
     })
     .finally(() => {
-      prefetchInflight.delete(id);
+      if (prefetchInflight.get(id) === p) prefetchInflight.delete(id);
     });
   prefetchInflight.set(id, p);
 }
@@ -67,6 +67,12 @@ export function takePrefetchedDocNode(id: string): string | undefined {
   const hit = prefetchCache.get(id);
   if (hit !== undefined) prefetchCache.delete(id);
   return hit;
+}
+
+/** Discard both cached text and late replies that started before a local save. */
+export function invalidatePrefetchedDocNode(id: string): void {
+  prefetchCache.delete(id);
+  prefetchInflight.delete(id);
 }
 
 /** 已绑定过预取监听的按钮（幂等标记：不写 data-* 污染 DOM，避免破坏逐字节断言） */
@@ -80,7 +86,10 @@ const warmedButtons = new WeakSet<HTMLElement>();
  * ClientRouter 转场后 DOM 会被替换，调用方需在 `astro:page-load` 再调一次。
  */
 export function warmDocEditEntry(buttonIds: readonly string[], readId: () => string): void {
-  const warm = (): void => prefetchDocNode(readId());
+  const warm = (): void => {
+    if (document.getElementById('doc-3col')?.dataset.editing === 'true') return;
+    prefetchDocNode(readId());
+  };
   for (const id of buttonIds) {
     const el = document.getElementById(id);
     if (!el || warmedButtons.has(el)) continue;

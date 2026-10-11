@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState } from 'react';
 import 'simple-mind-map/dist/simpleMindMap.esm.css';
 import type MindMap from 'simple-mind-map';
-import type { MindMapData } from 'simple-mind-map';
+import type { MindMapNodeData } from 'simple-mind-map';
 
 interface BlockInfo {
   type: string;
@@ -47,7 +47,7 @@ interface NodeLike {
   group?: { node?: SVGElement };
   highlight?: () => void;
   closeHighlight?: () => void;
-  getData?: () => { data?: { text?: string } };
+  getData?: () => { text?: string };
 }
 
 /** 导航到文章锚点/片段（anchorId 优先，否则用 snippet 在块摘要中模糊匹配） */
@@ -172,7 +172,7 @@ export default function MindMapViewer({ data, blockMap = {}, mapId }: Props): Re
 
     function nodeTitle(uid: string | null): string {
       if (!uid) return '根节点';
-      return nodeCache()[uid]?.getData?.().data?.text?.slice(0, 20) || '该节点';
+      return nodeCache()[uid]?.getData?.().text?.slice(0, 20) || '该节点';
     }
 
     /** 拖拽经过画布：感应节点 + 高亮（节流 50ms，但始终用最新鼠标坐标） */
@@ -242,7 +242,7 @@ export default function MindMapViewer({ data, blockMap = {}, mapId }: Props): Re
       if (disposed || !containerRef.current) return;
       // DB 存完整格式（getData(true) 输出）；初始化取 root + 布局/主题
       const full = (data ?? {}) as { root?: unknown; layout?: string; theme?: { template?: string } };
-      const rootData = (full.root ?? data) as MindMapData | undefined;
+      const rootData = (full.root ?? data) as MindMapNodeData | undefined;
       const instance = new mod.default({
         el: containerRef.current,
         data: rootData,
@@ -282,6 +282,7 @@ export default function MindMapViewer({ data, blockMap = {}, mapId }: Props): Re
       disposed = true;
       window.clearTimeout(throttleTimer.current);
       ro?.disconnect();
+      mm?.destroy();
       mmRef.current = null;
       clearHover();
       container?.removeEventListener('dragover', onDragOver);

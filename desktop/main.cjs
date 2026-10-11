@@ -215,6 +215,7 @@ let currentPort = 0;
 let siteBaseUrl = '';
 /** 应用窗口集合（Ctrl+N 多开）：主窗口关闭→隐藏到托盘，副窗口关闭即销毁 */
 const appWindows = new Set();
+const namedArticleWindows = new Map();
 
 /** 导航 IPC 只作用于发送请求的本站窗口。 */
 function navigationWindow(sender) {
@@ -257,6 +258,11 @@ function openExternalPage(url) {
 }
 
 ipcMain.handle('desktop:navigation-state', (event) => navigationState(navigationWindow(event.sender)));
+ipcMain.handle('desktop:focus-window', (event) => {
+  const win = navigationWindow(event.sender);
+  if (!win || !isLocalPage(event.sender.getURL())) return;
+  if (win.isMinimized()) win.restore(); win.show(); win.focus();
+});
 async function toolchainOwner(event) {
   const win = navigationWindow(event.sender);
   if (!win || event.senderFrame !== event.sender.mainFrame || !isLocalPage(event.senderFrame.url) || new URL(event.senderFrame.url).pathname.replace(/\/+$/, '') !== '/toolchain') throw Error('请在桌面端工具链页面操作');
@@ -335,8 +341,16 @@ function createWindow(url, { primary = false } = {}) {
     event.preventDefault();
     openExternalPage(event.url);
   });
-  win.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
-    if (isLocalPage(targetUrl)) createWindow(targetUrl, { primary: false });
+  win.webContents.setWindowOpenHandler(({ url: targetUrl, frameName }) => {
+    if (isLocalPage(targetUrl)) {
+      const named = typeof frameName === 'string' && frameName.length < 260 && /^(article-mindmap-|mindmap-source-)/.test(frameName);
+      const existing = named ? namedArticleWindows.get(frameName) : null;
+      if (existing && !existing.isDestroyed()) { if (existing.isMinimized()) existing.restore(); existing.show(); existing.focus(); }
+      else {
+        const opened = createWindow(targetUrl, { primary: false });
+        if (named) { namedArticleWindows.set(frameName, opened); opened.on('closed', () => { if (namedArticleWindows.get(frameName) === opened) namedArticleWindows.delete(frameName); }); }
+      }
+    }
     else openExternalPage(targetUrl);
     return { action: 'deny' };
   });

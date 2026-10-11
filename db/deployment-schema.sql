@@ -287,8 +287,30 @@ CREATE TABLE "mindmaps" (
 	"title" text NOT NULL,
 	"article_id" text,
 	"data" text NOT NULL,
+	"revision" integer DEFAULT 0 NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "mindmap_bindings" (
+  "id" text PRIMARY KEY NOT NULL,
+  "domain" text NOT NULL,
+  "target_id" text NOT NULL,
+  "map_id" text NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "source_block_indexes" (
+  "id" text PRIMARY KEY NOT NULL,
+  "data" text NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "mindmap_backups" (
+  "id" text PRIMARY KEY NOT NULL,
+  "map_id" text NOT NULL,
+  "data" text NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "moments" (

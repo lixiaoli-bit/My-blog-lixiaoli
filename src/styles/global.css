@@ -3473,10 +3473,9 @@
 /* ==================== 代码块折叠 / 展开（rehypeCodeBlockMeta + Pre + code-block-collapse.ts） ====================
  * - 控件 `.collapse-toggle` 与复制按钮同在右上角工具栏（折叠在左、复制在右）；
  *   仅**长块**渲染（rehypeCodeBlockMeta 按 15 行阈值标注 data-collapsible）；
- * - 折叠态 `[data-collapsed]`：限高 + 内容向下渐隐。渐隐用 mask 且**只作用于 `code`** ——
- *   若加在 pre 上会连带淡化工具栏按钮，且 mask 不依赖代码块背景色变量（更稳）；
- * - `overflow: hidden` 同时去掉折叠态的内部滚动条（折叠语义 = 不可滚）；
- * - 高度阈值走 CSS 变量（`--code-collapse-max-h`），便于主题/场景覆盖，避免散落魔法数字。 */
+ * - 折叠态完整隐藏 `code`，只保留工具栏；代码仍在 DOM 中，复制始终取完整内容；
+ * - 取消正文内边距和滚动条，文章及思维导图卡片都随折叠收缩；
+ * - 仅屏幕应用折叠样式，打印始终输出完整代码。 */
 .code-block .collapse-toggle {
   position: absolute;
   top: 0.45rem;
@@ -3502,25 +3501,20 @@
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
-.code-block[data-collapsed] {
-  max-height: var(--code-collapse-max-h, 14rem);
-  overflow: hidden;
+@media screen {
+  .prose pre.code-block[data-collapsed='true'] {
+    min-height: 2.75rem;
+    padding-block: 0;
+    overflow: hidden;
+  }
+  .prose pre.code-block[data-collapsed='true'] > code {
+    display: none;
+  }
+  .code-block[data-collapsed='true'] .copy-button {
+    opacity: 1;
+  }
 }
-.code-block[data-collapsed] > code {
-  -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 62%, transparent 100%);
-}
-/* 打印必须还原全部代码：折叠态的限高与渐隐会把后半段代码裁掉、淡掉（读者打印的
-   是文档而不是屏幕状态）。与 content-visibility 的打印还原同一思路。 */
 @media print {
-  .code-block[data-collapsed] {
-    max-height: none;
-    overflow: visible;
-  }
-  .code-block[data-collapsed] > code {
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
   /* 工具栏按钮是屏幕交互控件，不进打印结果 */
   .code-block .collapse-toggle,
   .code-block .copy-button,

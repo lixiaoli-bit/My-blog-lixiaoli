@@ -108,6 +108,8 @@ interface MarkdownEditorProps {
    * - 与 livePreview 互斥：两者都提供 decorations，叠加会装饰重叠。
    */
   wysiwyg?: boolean;
+  /** Show complete Markdown source without preview decorations; preserve undo and selection. */
+  sourceMode?: boolean;
   /** 文档就地编辑预先加载的模块：首帧直接装入可视扩展。 */
   initialWysiwyg?: typeof import('./cm-wysiwyg');
   /** 文档文章编辑器的三级 Markdown 右键菜单。 */
@@ -273,7 +275,7 @@ function nameFromUrl(url: string): string {
  * 可复用所见即所得编辑器
  */
 const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(function MarkdownEditor(
-  { initialContent, onChange, onSave, className, wysiwyg = false, initialWysiwyg, documentContextMenu = false, foldHeadings = false, variant = 'panel', autoHeight = false, onViewportHeading, onReady, onLoadError },
+  { initialContent, onChange, onSave, className, wysiwyg = false, sourceMode = false, initialWysiwyg, documentContextMenu = false, foldHeadings = false, variant = 'panel', autoHeight = false, onViewportHeading, onReady, onLoadError },
   ref,
 ): ReactElement {
   const ghost = variant === 'ghost';
@@ -283,6 +285,10 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(fun
   const themeCompartment = useRef(new Compartment());
   /** wysiwyg 装饰扩展的注入位：模块动态加载完成后 reconfigure（见初始化 effect） */
   const wysiwygCompartment = useRef(new Compartment());
+  const lineNumbersCompartment = useRef(new Compartment());
+  const sourceModeRef = useRef(sourceMode);
+  const configureSourceRef = useRef<(() => void) | null>(null);
+  sourceModeRef.current = sourceMode;
   /** 编辑器快捷键 compartment：挂载后拉取用户自定义绑定并热替换（失败保持默认） */
   const shortcutsCompartment = useRef(new Compartment());
   const onChangeRef = useRef<(v: string) => void>(() => {});
@@ -756,7 +762,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(fun
           // 同时消除编辑区底部的横向滚动条（此前长行只能横向滚动，布局与阅读态不一致）
           EditorView.lineWrapping,
           // WYSIWYG 模式隐藏行号（所见即所得下行号是视觉噪音）
-          ...(wysiwyg ? [] : [lineNumbers()]),
+          lineNumbersCompartment.current.of(sourceModeRef.current || !wysiwyg ? lineNumbers() : []),
           drawSelection(),
           history(),
           searchFoldRestoration,
@@ -817,12 +823,21 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(fun
           ...(foldHeadings ? [headingFolding()] : []),
           // 装饰扩展互斥：wysiwyg 模块动态加载后注入（见下方 import('./cm-wysiwyg')），
           // 写作台等非 wysiwyg 场景零 katex 负担；livePreview 为写作台轻量版
-          wysiwyg ? wysiwygCompartment.current.of(initialWysiwyg ? visualExtensions(initialWysiwyg.wysiwygPreview()) : []) : visualExtensions(livePreview()),
+          wysiwygCompartment.current.of(sourceModeRef.current ? [] : wysiwyg ? initialWysiwyg ? visualExtensions(initialWysiwyg.wysiwygPreview()) : [] : visualExtensions(livePreview())),
           themeCompartment.current.of(buildTheme(editorIsDark(), ghostMode, autoHeight && ghostMode)),
         ],
       }),
     });
     viewRef.current = view;
+    let preview: Extension | null = wysiwyg ? initialWysiwyg?.wysiwygPreview() ?? null : livePreview();
+    configureSourceRef.current = () => {
+      if (viewRef.current !== view) return;
+      view.dispatch({ effects: [
+        wysiwygCompartment.current.reconfigure(sourceModeRef.current || !preview ? [] : visualExtensions(preview)),
+        lineNumbersCompartment.current.reconfigure(sourceModeRef.current || !wysiwyg ? lineNumbers() : []),
+      ] });
+      view.requestMeasure();
+    };
     if (documentContextMenu) contextMenuRef.current = new MarkdownContextMenu();
     writeStatsRef.current?.(view.state);
     // 所见即所得扩展会异步注入；此时通知宿主会先展示源码，再突然切成
@@ -861,7 +876,8 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(fun
       void import('./cm-wysiwyg')
         .then((m) => {
           if (viewRef.current !== view) return;
-          view.dispatch({ effects: wysiwygCompartment.current.reconfigure(visualExtensions(m.wysiwygPreview())) });
+          preview = m.wysiwygPreview();
+          configureSourceRef.current?.();
           onReadyRef.current?.();
         })
         .catch((error: unknown) => {
@@ -918,9 +934,12 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(fun
       contextMenuRef.current?.destroy();
       contextMenuRef.current = null;
       viewRef.current = null;
+      configureSourceRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => { configureSourceRef.current?.(); }, [sourceMode]);
 
   /* 外部内容变化 → 同步到编辑器 */
   useEffect(() => {

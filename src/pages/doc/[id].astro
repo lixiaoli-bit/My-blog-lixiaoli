@@ -120,7 +120,10 @@ const folderOptionsJson = JSON.stringify(folderOptions);
       {isAuthed && <button id="doc-edit-bundle" type="button" title="编辑文档" aria-label="编辑文档" class="icon-btn-tap ml-2 text-xs text-muted-foreground transition-colors hover:text-primary">✎</button>}
     </Fragment>
     <Fragment slot="title-actions">
+      {isAuthed && activeNode && <button id="doc-inline-preview" type="button" aria-pressed="true" class="mt-2 shrink-0 rounded-md border border-border px-2.5 py-1 text-xs text-primary">预览</button>}
       {isAuthed && activeNode && <button id="doc-inline-edit" type="button" title="原地编辑本文" aria-label="原地编辑本文" class="mt-2 shrink-0 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary">编辑</button>}
+      {activeNode && <button data-map-open type="button" class="mt-2">思维导图</button>}
+      {isAuthed && activeNode && <button id="doc-inline-source" type="button" title="查看和编辑完整 Markdown 源码" aria-pressed="false" class="mt-2 shrink-0 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary">源码模式</button>}
       {activeNode && <ExportMenu mdBase="/api/export/doc/" mdParam="article" class="mt-1.5" />}
     </Fragment>
     <Fragment slot="editor">{isAuthed && activeNode && <DocInlineEditor client:idle />}</Fragment>
@@ -532,32 +535,35 @@ const folderOptionsJson = JSON.stringify(folderOptions);
      岛用 client:idle，首屏可能尚未水合：轮询等待最多 ~2s —— 但**必须同时给出即时
      反馈**（正文降透明 + 顶部进度条），否则用户把「等水合」当成点击无响应而连点。
      悬停/聚焦按钮即预取正文（页面脚本不依赖水合，比岛内绑定更早生效）。 */
-  const EDIT_ENTRY_IDS = ['doc-inline-edit', 'rt-doc-inline-edit'] as const;
+  const EDIT_ENTRY_IDS = ['doc-inline-edit', 'doc-inline-source', 'rt-doc-inline-edit'] as const;
   warmDocEditEntry(EDIT_ENTRY_IDS, currentActiveId);
   document.addEventListener('astro:page-load', () => warmDocEditEntry(EDIT_ENTRY_IDS, currentActiveId));
 
   document.addEventListener('click', (e) => {
     if (!isAuthed()) return;
-    if (!(e.target as HTMLElement).closest('#doc-inline-edit')) return;
+    const entry = (e.target as HTMLElement).closest<HTMLElement>('#doc-inline-edit,#doc-inline-source,#doc-inline-preview');
+    if (!entry) return;
+    const sourceMode = entry.id === 'doc-inline-source';
+    const preview = entry.id === 'doc-inline-preview';
     const grid = document.getElementById('doc-3col');
     const editing = grid?.dataset.editing === 'true';
-    const bridge = (window as unknown as { __docInlineEditor?: { open: () => void; saveAndClose?: () => void } }).__docInlineEditor;
+    const bridge = window.__docInlineEditor;
     if (bridge) {
-      if (editing && bridge.saveAndClose) bridge.saveAndClose();
-      else bridge.open();
+      if (preview) { if (editing) bridge.saveAndClose?.(); }
+      else bridge.open(sourceMode ? 'source' : 'visual');
       return;
     }
     // 岛尚未水合：保持阅读正文稳定，桥就位后由编辑器原位接管。
     let tries = 0;
     const tryBridge = (): void => {
-      const b = (window as unknown as { __docInlineEditor?: { open: () => void; saveAndClose?: () => void } }).__docInlineEditor;
+      const b = window.__docInlineEditor;
       if (!b) {
         if (tries++ < 20) window.setTimeout(tryBridge, 100);
         else console.warn('[doc] 编辑器尚未就绪，请稍后再试');
         return;
       }
-      if (editing && b.saveAndClose) b.saveAndClose();
-      else b.open();
+      if (preview) { if (editing) b.saveAndClose?.(); }
+      else b.open(sourceMode ? 'source' : 'visual');
     };
     tryBridge();
   });

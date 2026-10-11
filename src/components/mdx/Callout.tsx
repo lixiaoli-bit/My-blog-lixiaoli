@@ -34,6 +34,7 @@ interface CalloutProps {
   collapsed?: string | boolean;
   /** 整块 callout 的原始 markdown 源码（remarkCallout 切片注入）；缺省不出复制按钮 */
   rawSource?: string;
+  sourceKey?: string;
   children?: ReactNode;
 }
 
@@ -111,6 +112,7 @@ export default function Callout({
   foldable,
   collapsed,
   rawSource,
+  sourceKey,
   children,
 }: CalloutProps): ReactNode {
   const safeType = META[type] ? type : 'note';
@@ -143,6 +145,7 @@ export default function Callout({
   if (isFoldable) {
     return (
       <details
+        data-source-key={sourceKey}
         className={`callout callout-${safeType} callout-foldable`}
         data-callout={safeType}
         open={!isCollapsed}
@@ -155,7 +158,7 @@ export default function Callout({
   }
 
   return (
-    <aside className={`callout callout-${safeType}`} data-callout={safeType} role="note">
+    <aside className={`callout callout-${safeType}`} data-callout={safeType} data-source-key={sourceKey} role="note">
       <div className="callout-title">{titleNode}</div>
       {copyButton}
       <div className="callout-body">{bodyChildren}</div>

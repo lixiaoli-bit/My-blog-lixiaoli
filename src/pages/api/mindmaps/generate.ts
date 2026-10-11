@@ -1,39 +1,46 @@
-/**
- * POST /api/mindmaps/generate —— 从文章标题结构自动生成导图骨架（管理员）
- *
- * body: { articleId, title? }
- * → 201 { map: { id, title, articleId } }（data 为自动生成的骨架）
- */
-import type { APIRoute } from 'astro';
-import { badJson, badRequest, guardManager, json, notFound, readJson } from '@/lib/api';
-import { getArticleById } from '@/lib/articles';
-import { createMindmap, generateFromArticleMarkdown } from '@/lib/mindmaps';
-
+import type { APIRoute } from "astro";
+import {
+  ensureMap,
+  mapFailure,
+  mapResponse,
+  reference,
+  saveMap,
+} from "@/lib/mindmap-service";
+import type { MapNode } from "@/lib/mindmap-types";
 export const prerender = false;
-
 export const POST: APIRoute = async ({ request, cookies }) => {
-  const denied = await guardManager(cookies);
-  if (denied) return denied;
-  const body = await readJson<{ articleId?: unknown; title?: unknown }>(request);
-  if (!body) return badJson();
-
-  const articleId = typeof body.articleId === 'string' && body.articleId.trim() ? body.articleId.trim() : '';
-  if (!articleId) return badRequest('缺少文章 ID');
-
   try {
-    const article = await getArticleById(articleId);
-    if (!article) return notFound('文章不存在');
-
-    const title = (typeof body.title === 'string' && body.title.trim() ? body.title.trim() : article.title).slice(0, 100);
-    const data = generateFromArticleMarkdown(title, article.content);
-
-    const map = await createMindmap({ title, articleId: article.id, data });
-    return json(
-      { map: { id: map.id, title: map.title, articleId: map.articleId, updatedAt: map.updatedAt.toISOString() } },
-      201,
-    );
-  } catch (err) {
-    console.error('[api/mindmaps/generate]', err);
-    return json({ error: '生成失败' }, 500);
+    const body = await request.json(),
+      map = await ensureMap(
+        { domain: "article", targetId: body.articleId },
+        cookies,
+      );
+    const branch: MapNode = {
+      data: { text: "文章结构", expand: true },
+      children: [],
+    };
+    const stack = [{ level: 0, node: branch }];
+    for (const block of map.source!.blocks.filter(
+      (block) => block.kind === "heading",
+    )) {
+      while (stack.length > 1 && stack.at(-1)!.level >= block.level!)
+        stack.pop();
+      const node: MapNode = {
+        data: {
+          text: block.title,
+          expand: true,
+          sourceRef: reference(map.source!, block.blockId),
+        },
+        children: [],
+      };
+      stack.at(-1)!.node.children!.push(node);
+      stack.push({ level: block.level!, node });
+    }
+    (map.data.root.children ??= []).push(branch);
+    return mapResponse({
+      map: await saveMap(map.id, map.revision, { data: map.data, version: map.version }, cookies),
+    });
+  } catch (e) {
+    return mapFailure(e);
   }
 };

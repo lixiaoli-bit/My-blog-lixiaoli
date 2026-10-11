@@ -395,6 +395,7 @@ export interface Mindmap {
   articleId: string | null;
   /** simple-mind-map 全量数据 JSON（layout/root/theme/view + 节点锚点） */
   data: string;
+  revision: number;
   createdAt: Date;
   updatedAt: Date;
 }

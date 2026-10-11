@@ -493,6 +493,7 @@ export const mindmaps = sqliteTable(
     articleId: text('article_id'),
     /** simple-mind-map 全量数据 JSON（layout/root/theme/view + 节点锚点） */
     data: text('data').notNull(),
+    revision: integer('revision').notNull().default(0),
     /** 创建时间 */
     createdAt: timestampMs('created_at')
       .notNull()
@@ -507,6 +508,19 @@ export const mindmaps = sqliteTable(
     index('mindmaps_article_idx').on(table.articleId),
   ],
 );
+
+export const mindmapBindings = sqliteTable('mindmap_bindings', {
+  id: text('id').primaryKey(), domain: text('domain').notNull(), targetId: text('target_id').notNull(),
+  mapId: text('map_id').notNull(), updatedAt: timestampMs('updated_at').notNull().$defaultFn(() => new Date()),
+});
+export const sourceBlockIndexes = sqliteTable('source_block_indexes', {
+  id: text('id').primaryKey(), data: text('data').notNull(),
+  updatedAt: timestampMs('updated_at').notNull().$defaultFn(() => new Date()),
+});
+export const mindmapBackups = sqliteTable('mindmap_backups', {
+  id: text('id').primaryKey(), mapId: text('map_id').notNull(), data: text('data').notNull(),
+  updatedAt: timestampMs('updated_at').notNull().$defaultFn(() => new Date()),
+});
 
 /** 网址导航·分类 */
 export const webCategories = sqliteTable(

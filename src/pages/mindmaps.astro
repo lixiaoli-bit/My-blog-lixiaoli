@@ -1,0 +1,16 @@
+---
+import MindMapWorkspace from '@/components/mindmap/MindMapWorkspace';
+import ThemeHead from '@/components/ThemeHead.astro';
+import '@/styles/global.css';
+import '@/styles/soft-code-blocks.css';
+import '@/styles/neobrutalism.css';
+import 'katex/dist/katex.min.css';
+import { getCustomMdCss, scopeMdCss } from '@/lib/md-css';
+const mdCustomCss = await getCustomMdCss();
+const mdCssScoped = mdCustomCss.css.trim() ? scopeMdCss(mdCustomCss.css) : '';
+const id = Astro.url.searchParams.get('id') || undefined;
+const domain = Astro.url.searchParams.get('domain'), targetId = Astro.url.searchParams.get('targetId');
+const source = (domain === 'article' || domain === 'doc') && targetId ? { domain, targetId } as const : undefined;
+Astro.response.headers.set('cache-control', 'private, no-store');
+---
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="robots" content="noindex" /><title>文章思维导图</title><ThemeHead />{mdCssScoped && <style id="md-custom-css" set:html={mdCssScoped} />}</head><body><MindMapWorkspace client:load mapId={id} source={source} /></body></html>

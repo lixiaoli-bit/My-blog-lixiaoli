@@ -1,7 +1,7 @@
 /**
  * 组装「自包含」桌面端目录（不依赖源码 / 不依赖 pnpm 软链）
  *
- * 产物：release/portable/（构建成功后覆盖固定目录）
+ * 产物：release/portable/ 或 release/portable2/（自动选择未运行的版本）
  *   ├─ 白衣卿相.exe            ← Electron 运行时（从 node_modules/electron/dist 复制）
  *   ├─ *.dll / *.pak / locales/
  *   └─ resources/
@@ -22,15 +22,19 @@ import path from 'node:path';
 import { builtinModules, createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
+import { acquirePortableLock, bundlePath, readPortableProcesses, selectPortableTarget } from './portable-target.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 /**
- * 先在 release/.portable-staging-* 临时组装，再将成功产物替换到 release/portable。
+ * 先临时组装，再将成功产物替换到空闲的便携目录。
  */
 const RELEASE = path.join(ROOT, 'release');
-const bundleDirName = process.env.BYQX_DESKTOP_BUNDLE_DIR || 'portable';
-if (!/^[a-zA-Z0-9][a-zA-Z0-9-]{0,63}$/.test(bundleDirName)) throw new Error('便携包目录名不合法');
-const PORTABLE = path.join(RELEASE, bundleDirName);
+const buildLock = acquirePortableLock(RELEASE);
+process.on('exit', () => buildLock.release());
+const requestedBundle = process.env.BYQX_DESKTOP_BUNDLE_DIR || '';
+let bundleDirName = selectPortableTarget(RELEASE, readPortableProcesses(), requestedBundle);
+let PORTABLE = bundlePath(RELEASE, bundleDirName);
+console.log(`✓ 自动检测：本次打包到 release/${bundleDirName}`);
 const OUT = path.join(RELEASE, `.portable-staging-${process.pid}-${Date.now()}`);
 const APP = path.join(OUT, 'resources', 'app');
 const requireHere = createRequire(import.meta.url);
@@ -360,7 +364,7 @@ for (const [destDir, srcDir] of packageSources) {
 }
 
 if (failed) {
-  throw new Error(`便携版有 ${failed} 个必需依赖未解析或复制失败，保留现有 release/portable`);
+  throw new Error(`便携版有 ${failed} 个必需依赖未解析或复制失败，保留现有便携目录`);
 }
 console.log(`✓ 依赖闭包已复制：${copied.size} 个包安装位置`);
 if (repairedManifests) console.log(`✓ 已校验并修复 ${repairedManifests} 个包清单`);
@@ -378,7 +382,10 @@ const sizeOf = (dir) => {
 console.log(`\n临时产物：${OUT}`);
 console.log(`  总大小约 ${sizeOf(OUT)} MB（其中 resources/app/node_modules 约 ${sizeOf(nm)} MB）`);
 console.log(`  入口：${path.join(OUT, '白衣卿相.exe')}`);
-// 所有内容先在暂存目录组装，完成后再替换固定便携目录；发布路径始终只有 release/portable。
+// 用户可能在构建期间切换版本。发布前重新检测，绝不替换正在运行的目录。
+bundleDirName = selectPortableTarget(RELEASE, readPortableProcesses(), requestedBundle);
+PORTABLE = bundlePath(RELEASE, bundleDirName);
+// 所有内容先在暂存目录组装，完成后再替换空闲目录。
 // 若替换中断，会尽力把原目录恢复，避免留下半包。
 mkdirSync(RELEASE, { recursive: true });
 const previous = path.join(RELEASE, `.portable-previous-${process.pid}-${Date.now()}`);
@@ -393,7 +400,11 @@ try {
   if (movedPrevious && !existsSync(PORTABLE) && existsSync(previous)) renameSync(previous, PORTABLE);
   throw error;
 }
-if (movedPrevious) rmSync(previous, { recursive: true, force: true });
+if (movedPrevious) {
+  if (path.dirname(path.resolve(previous)) !== path.resolve(RELEASE) || !path.basename(previous).startsWith('.portable-previous-')) throw new Error('旧包清理路径不合法');
+  rmSync(previous, { recursive: true, force: true });
+}
+writeFileSync(path.join(RELEASE, 'portable-build.json'), JSON.stringify({ directory: bundleDirName, executable: path.join(PORTABLE, '白衣卿相.exe'), builtAt: new Date().toISOString() }, null, 2));
 console.log(`\n已覆盖便携版目录：${PORTABLE}`);
 console.log(`入口：${path.join(PORTABLE, '白衣卿相.exe')}`);
 console.log('验证方式：从项目外部目录启动该 exe，确认不依赖源码。');

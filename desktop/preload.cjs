@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('desktop', {
     ? ipcRenderer.invoke('desktop:pick-skill-directory', skillId) : Promise.resolve(null),
   /** 当前窗口的站内历史导航；页面无法指定其他窗口或任意 IPC 通道。 */
   goBack: () => ipcRenderer.invoke('desktop:navigation-back'),
+  focusWindow: () => ipcRenderer.invoke('desktop:focus-window'),
   goForward: () => ipcRenderer.invoke('desktop:navigation-forward'),
   getNavigationState: () => ipcRenderer.invoke('desktop:navigation-state'),
   onNavigationStateChange: (callback) => {

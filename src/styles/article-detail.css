@@ -204,8 +204,8 @@
   html:has(#doc-3col[data-editing='true'])::-webkit-scrollbar { display: none; }
   html:has(#doc-3col[data-editing='true']) body { padding-right: var(--doc-edit-scrollbar-gutter, 0px); }
 
-  /* 标题旁入口按钮：编辑态 →「完成」高亮（primary 色） */
-  #doc-inline-edit.doc-entry-active {
+  /* 标题旁入口按钮：高亮当前阅读或编辑模式。 */
+  :is(#doc-inline-edit, #doc-inline-preview, #doc-inline-source).doc-entry-active {
     border-color: var(--color-primary);
     color: var(--color-primary);
     background: color-mix(in srgb, var(--color-primary) 8%, transparent);

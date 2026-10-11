@@ -1,70 +1,68 @@
-/**
- * GET/POST /api/mindmaps —— 思维导图列表 / 创建
- *
- * GET:  ?articleId=xxx → { maps: [{id,title,articleId,updatedAt}] }（公开，不含 data）
- * POST: { title, articleId?, data? } → 201 { map }（管理员）
- */
-import type { APIRoute } from 'astro';
-import { badJson, badRequest, guardManager, json, readJson } from '@/lib/api';
-import { createMindmap, emptyMindmapData, listMindmaps, stringifyMindmapData } from '@/lib/mindmaps';
-import { listArticleMeta } from '@/lib/articles';
-import { canManage } from '@/lib/admin-auth';
-
+import type { APIRoute } from "astro";
+import { createMindmap, emptyMindmapData, listMindmaps } from "@/lib/mindmaps";
+import { canManage } from "@/lib/admin-auth";
+import {
+  ensureMap,
+  mapPayload,
+  mapResponse,
+  mapFailure,
+  validateDocument,
+  MapError,
+} from "@/lib/mindmap-service";
 export const prerender = false;
-
-const MAX_TITLE = 100;
-
 export const GET: APIRoute = async ({ url, cookies }) => {
   try {
-    const articleId = url.searchParams.get('articleId')?.trim() || undefined;
-    const maps = await listMindmaps(articleId);
-    const manager = await canManage(cookies, 'articles');
-    const visibleArticleIds = manager ? null : new Set((await listArticleMeta()).map((article) => article.id));
-    return json({
-      maps: maps.filter((m) => !m.articleId || manager || visibleArticleIds?.has(m.articleId)).map((m) => ({
-        id: m.id,
-        title: m.title,
-        articleId: m.articleId,
-        updatedAt: m.updatedAt.toISOString(),
-      })),
-    });
-  } catch (err) {
-    console.error('[api/mindmaps]', err);
-    return json({ error: '获取思维导图失败' }, 500);
+    const maps = await listMindmaps(
+      url.searchParams.get("articleId") || undefined,
+    );
+    const visible = await Promise.all(
+      maps.map(async (map) => {
+        try {
+          await mapPayload(map.id, cookies);
+          return { ...map, updatedAt: map.updatedAt.toISOString() };
+        } catch {
+          return null;
+        }
+      }),
+    );
+    return mapResponse({ maps: visible.filter(Boolean) });
+  } catch (e) {
+    return mapFailure(e);
   }
 };
-
 export const POST: APIRoute = async ({ request, cookies }) => {
-  const denied = await guardManager(cookies);
-  if (denied) return denied;
-  const body = await readJson<{ title?: unknown; articleId?: unknown; data?: unknown }>(request);
-  if (!body) return badJson();
-
-  const title = typeof body.title === 'string' ? body.title.trim().slice(0, MAX_TITLE) : '';
-  if (!title) return badRequest('请填写导图标题');
-  const articleId = typeof body.articleId === 'string' && body.articleId.trim() ? body.articleId.trim().slice(0, 200) : null;
-
-  let data: string;
-  if (typeof body.data === 'string' && body.data.trim()) {
-    // 校验为合法 JSON
-    try {
-      JSON.parse(body.data);
-    } catch {
-      return badRequest('导图数据不合法');
-    }
-    data = body.data;
-  } else {
-    data = stringifyMindmapData(emptyMindmapData(title));
-  }
-
   try {
-    const map = await createMindmap({ title, articleId, data });
-    return json(
-      { map: { id: map.id, title: map.title, articleId: map.articleId, updatedAt: map.updatedAt.toISOString() } },
-      201,
+    const body = await request.json();
+    if (body.articleId)
+      return mapResponse(
+        {
+          map: await ensureMap(
+            { domain: "article", targetId: body.articleId },
+            cookies,
+          ),
+        },
+        201,
+      );
+    if (!(await canManage(cookies, "articles")))
+      throw new MapError("没有导图管理权限", 403);
+    const title = String(body.title ?? "")
+      .trim()
+      .slice(0, 100);
+    if (!title) throw new MapError("请填写导图标题");
+    const data = validateDocument(
+      body.data
+        ? typeof body.data === "string"
+          ? JSON.parse(body.data)
+          : body.data
+        : emptyMindmapData(title),
     );
-  } catch (err) {
-    console.error('[api/mindmaps]', err);
-    return json({ error: '创建失败' }, 500);
+    const created = await createMindmap({
+      title,
+      articleId: null,
+      data: JSON.stringify(data),
+    });
+    return mapResponse({ map: await mapPayload(created.id, cookies) }, 201);
+  } catch (e) {
+    return mapFailure(e);
   }
 };

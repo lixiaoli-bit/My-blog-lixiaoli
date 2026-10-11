@@ -264,6 +264,8 @@ export function remarkCallout() {
             walk(body);
 
             const attrs: MdxJsxAttr[] = [jsxAttr('type', type)];
+            const sourceKey = (node.data as { sourceKey?: string } | undefined)?.sourceKey;
+            if (sourceKey) attrs.push(jsxAttr('sourceKey', sourceKey));
             // 原始源码属性 → Callout 组件的 rawSource prop → 阅读模式复制按钮
             if (rawSource) attrs.push(jsxAttr('rawSource', rawSource));
             // 无富文本节点时才用纯文本 title（富文本优先，见下方标记段落）

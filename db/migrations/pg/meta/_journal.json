@@ -141,6 +141,7 @@
       "when": 1791331200001,
       "tag": "0019_mobile_sync",
       "breakpoints": true
-    }
+    },
+    { "idx": 20, "version": "7", "when": 1791561600000, "tag": "0020_article_mindmaps", "breakpoints": true }
   ]
 }

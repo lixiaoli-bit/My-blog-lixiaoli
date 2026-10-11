@@ -283,6 +283,14 @@ export default function LiveEditor({ initial, articles, categories, categoryMap 
       },
     });
   }, [selectedId, editorReady, viewMode, encryptOn, saveNow]);
+  useEffect(() => {
+    const flush = async (source: { domain: string; targetId: string }) => {
+      if (source.domain !== 'article' || source.targetId !== draftRef.current.id) return false;
+      editorRef.current?.flushInputs(); if (saveTimer.current) window.clearTimeout(saveTimer.current); return saveNow();
+    };
+    window.__liveMindmapFlush = flush;
+    return () => { if (window.__liveMindmapFlush === flush) delete window.__liveMindmapFlush; };
+  }, [saveNow]);
 
   useEffect(
     () => () => {
@@ -637,6 +645,7 @@ export default function LiveEditor({ initial, articles, categories, categoryMap 
 
   return (
     <div className="flex h-full min-h-0">
+      <span id="map-live-editor-source" hidden data-map-article={selectedId ?? undefined} />
       {/* 左栏：全部文章（按自定义分类 / 内置类型分组） */}
       {!focusMode && (
         <aside className="flex w-64 shrink-0 flex-col border-r bg-muted/20">
@@ -1108,15 +1117,15 @@ export default function LiveEditor({ initial, articles, categories, categoryMap 
             ) : null}
             <button
               type="button"
-              onClick={() => setMapOpen((o) => !o)}
+              onClick={() => window.open(`/mindmaps?domain=article&targetId=${encodeURIComponent(draftRef.current.id)}`, `article-mindmap-article-${draftRef.current.id}`, 'popup,width=1280,height=850')}
               className={`ml-auto rounded-md border px-2.5 py-1 transition-colors duration-200 ${
                 mapOpen
                   ? 'border-primary/60 bg-primary/10 text-primary'
                   : 'border-border text-muted-foreground hover:border-primary/50 hover:text-primary'
               }`}
-              title="展开/收起思维导图面板"
+              title="在新窗口打开当前文章的思维导图"
             >
-              🧭 导图
+              思维导图
             </button>
             <button
               type="button"

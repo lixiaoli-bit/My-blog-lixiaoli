@@ -1,91 +1,45 @@
-/**
- * GET/PUT/DELETE /api/mindmaps/[id] —— 导图详情 / 保存 / 删除
- *
- * GET:   → { map: { id, title, articleId, data(对象), updatedAt } }（公开）
- * PUT:   { title?, articleId?, data? } → { map }（管理员；data 为 JSON 字符串）
- * DELETE: → { ok }（管理员）
- */
-import type { APIRoute } from 'astro';
-import { badJson, badRequest, guardManager, json, notFound, readJson } from '@/lib/api';
-import { deleteMindmap, getMindmap, parseMindmapData, updateMindmap } from '@/lib/mindmaps';
-import { getArticleById } from '@/lib/articles';
-import { canManage } from '@/lib/admin-auth';
-
+import type { APIRoute } from "astro";
+import { eq } from "drizzle-orm";
+import { db } from "../../../../db";
+import { mindmaps, mindmapBindings } from "../../../../db/schema.sqlite";
+import {
+  mapPayload,
+  saveMap,
+  mapResponse,
+  mapFailure,
+  MapError,
+} from "@/lib/mindmap-service";
 export const prerender = false;
-
-const MAX_TITLE = 100;
-
 export const GET: APIRoute = async ({ params, cookies }) => {
-  const id = params.id ?? '';
   try {
-    const map = await getMindmap(id);
-    if (!map) return notFound('思维导图不存在');
-    if (map.articleId && !(await canManage(cookies, 'articles'))) {
-      const article = await getArticleById(map.articleId);
-      if (!article) return notFound('思维导图不存在');
-    }
-    return json({
-      map: {
-        id: map.id,
-        title: map.title,
-        articleId: map.articleId,
-        data: parseMindmapData(map.data),
-        updatedAt: map.updatedAt.toISOString(),
-      },
-    });
-  } catch (err) {
-    console.error('[api/mindmaps]', err);
-    return json({ error: '获取思维导图失败' }, 500);
+    return mapResponse({ map: await mapPayload(params.id!, cookies) });
+  } catch (e) {
+    return mapFailure(e);
   }
 };
-
-export const PUT: APIRoute = async ({ params, request, cookies }) => {
-  const denied = await guardManager(cookies);
-  if (denied) return denied;
-  const id = params.id ?? '';
-  const body = await readJson<{ title?: unknown; articleId?: unknown; data?: unknown }>(request);
-  if (!body) return badJson();
-
-  const patch: { title?: string; articleId?: string | null; data?: string } = {};
-  if (body.title !== undefined) {
-    const title = typeof body.title === 'string' ? body.title.trim().slice(0, MAX_TITLE) : '';
-    if (!title) return badRequest('导图标题不能为空');
-    patch.title = title;
-  }
-  if (body.articleId !== undefined) {
-    patch.articleId = typeof body.articleId === 'string' && body.articleId.trim() ? body.articleId.trim().slice(0, 200) : null;
-  }
-  if (body.data !== undefined) {
-    if (typeof body.data !== 'string' || !body.data.trim()) return badRequest('导图数据不合法');
-    try {
-      JSON.parse(body.data);
-    } catch {
-      return badRequest('导图数据不合法');
-    }
-    patch.data = body.data;
-  }
-
+export const PUT: APIRoute = async ({ params, cookies, request }) => {
   try {
-    const map = await updateMindmap(id, patch);
-    if (!map) return notFound('思维导图不存在');
-    return json({
-      map: { id: map.id, title: map.title, articleId: map.articleId, updatedAt: map.updatedAt.toISOString() },
+    const body = await request.json();
+    if ("articleId" in body)
+      throw new MapError(
+        "请从文章入口创建或打开唯一关联导图，不能通过旧客户端改绑",
+      );
+    return mapResponse({
+      map: await saveMap(params.id!, body.revision, body, cookies),
     });
-  } catch (err) {
-    console.error('[api/mindmaps]', err);
-    return json({ error: '保存失败' }, 500);
+  } catch (e) {
+    return mapFailure(e);
   }
 };
-
 export const DELETE: APIRoute = async ({ params, cookies }) => {
-  const denied = await guardManager(cookies);
-  if (denied) return denied;
-  const id = params.id ?? '';
   try {
-    await deleteMindmap(id);
-    return json({ ok: true });
-  } catch (err) {
-    console.error('[api/mindmaps]', err);
-    return json({ error: '删除失败' }, 500);
+    await mapPayload(params.id!, cookies, true);
+    await db
+      .delete(mindmapBindings)
+      .where(eq(mindmapBindings.mapId, params.id!));
+    await db.delete(mindmaps).where(eq(mindmaps.id, params.id!));
+    return mapResponse({ ok: true });
+  } catch (e) {
+    return mapFailure(e);
   }
 };

@@ -9,6 +9,13 @@ const { article } = Astro.props;
 
 /* ===== Imports ===== */
 import { countChars, readingTime } from '@/lib/reading';
+import { resolveSource, getBinding } from '@/lib/mindmap-service';
+import { listMindmaps } from '@/lib/mindmaps';
+let showMap = false;
+try {
+  const source = await resolveSource({ domain: 'article', targetId: article.id }, Astro.cookies);
+  showMap = source.canEdit || Boolean(await getBinding(source)) || (await listMindmaps(article.id)).length > 0;
+} catch { /* Password gate and unavailable source: no content or entry is injected. */ }
 
 /* ===== Logic ===== */
 /** 格式化时间为「YYYY-MM-DD HH:mm」 */
@@ -55,7 +62,7 @@ function formatShort(date: Date): string {
     }
   </div>
   <img class="article-title-cat float-right" src="/images/neobrutalism/cat-peek.webp" alt="" aria-hidden="true" width="72" height="44" />
-  <h1 class="mt-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">{article.title}</h1>
+  <div class="flex flex-wrap items-center gap-3"><h1 class="mt-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">{article.title}</h1>{showMap && <button data-map-open data-map-article={article.id} type="button" class="mt-3">思维导图</button>}</div>
   {
     article.summary && (
       <p class="font-readable mt-3 text-base text-muted-foreground">{article.summary}</p>

@@ -2,7 +2,7 @@
  * 代码块折叠 / 展开（原生 JS，document 级事件委托）
  *
  * - 控件：`[data-code-toggle]` 按钮；作用对象：`btn.closest('[data-code-block]')`
- * - 状态记在**目标元素**上：`data-collapsed="true"`（CSS 据此限高 + 内容向下淡出），
+ * - 状态记在**目标元素**上：`data-collapsed="true"`（CSS 据此完整隐藏代码正文），
  *   组件只负责渲染控件与初始态，状态流转全在这里 —— 避免 React 状态与 DOM 两份真相。
  * - document 委托：View Transitions 换页、动态列表「加载更多」插入的新代码块
  *   都无需重新绑定（同 copy-button.ts 的做法）。

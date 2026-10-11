@@ -2,14 +2,14 @@
  * 思维导图数据访问层（文章绑定 / 独立导图）
  *
  * - data 存 simple-mind-map 全量 JSON（layout/root/theme/view + 节点锚点扩展）；
- * - 文章 → 导图：articleId 一对多；articleId 为 null 表示独立导图；
- * - 自动生成骨架：解析文章 Markdown 标题层级 → 树。
+ * - 历史 articleId 由 mindmap-service 接入唯一来源表；新关联和保存都由 service 校验。
  */
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { mindmaps } from '../../db/schema.sqlite';
 import { db } from '../../db';
 import type { Mindmap, MindmapMeta } from '../../db/types';
+import { buildSourceIndex } from './source-block-index';
 
 /** 解析导图 data（JSON 字符串 → 对象；损坏返回 null；自动修复嵌套损坏） */
 export function parseMindmapData(raw: string): unknown {
@@ -107,13 +107,14 @@ export async function createMindmap(input: {
 /** 更新导图（标题/绑定/数据；更新 updatedAt） */
 export async function updateMindmap(
   id: string,
-  input: { title?: string; articleId?: string | null; data?: string },
+  input: { title?: string; articleId?: string | null; data?: string; revision: number },
 ): Promise<Mindmap | null> {
-  const patch: Record<string, unknown> = { updatedAt: new Date() };
+  if (!Number.isInteger(input.revision)) throw new Error('客户端缺少版本，请刷新或升级');
+  const patch: Record<string, unknown> = { updatedAt: new Date(), revision: input.revision + 1 };
   if (input.title !== undefined) patch.title = input.title;
   if (input.articleId !== undefined) patch.articleId = input.articleId;
   if (input.data !== undefined) patch.data = input.data;
-  const rows = await db.update(mindmaps).set(patch).where(eq(mindmaps.id, id)).returning();
+  const rows = await db.update(mindmaps).set(patch).where(and(eq(mindmaps.id, id), eq(mindmaps.revision, input.revision))).returning();
   return (rows[0] as Mindmap | undefined) ?? null;
 }
 
@@ -134,7 +135,7 @@ export function addMindmapRefNode(
 ): unknown {
   const tree = data as { root?: RefNode } | null;
   const root = tree?.root;
-  if (!root) return data;
+  if (!root) throw new Error('导图缺少根节点');
 
   const newNode: RefNode = {
     data: {
@@ -151,7 +152,7 @@ export function addMindmapRefNode(
 
   // 查找目标父节点（按节点 uid/id；simple-mind-map 节点 uid 存在 data 内）
   const target = input.parentId ? findMindmapNode(root, input.parentId) : root;
-  if (!target) return data;
+  if (!target) throw new Error('目标父节点不存在');
   if (!Array.isArray(target.children)) target.children = [];
   target.children.push(newNode);
   return data;
@@ -194,7 +195,7 @@ export async function deleteMindmap(id: string): Promise<void> {
  * # 一级 → 根分支；## 二级 → 子分支；更深层级递归。标题去 markdown 符号，
  * 前 3 层展开、更深折叠（保持首屏清爽）。
  */
-export function generateFromArticleMarkdown(title: string, markdown: string): string {
+export async function generateFromArticleMarkdown(title: string, markdown: string): Promise<string> {
   interface TreeNode {
     data: { text: string; expand: boolean };
     children: TreeNode[];
@@ -202,11 +203,9 @@ export function generateFromArticleMarkdown(title: string, markdown: string): st
   const root: TreeNode = { data: { text: title || '思维导图', expand: true }, children: [] };
   const stack: { level: number; node: TreeNode }[] = [{ level: 0, node: root }];
 
-  for (const line of markdown.split('\n')) {
-    const m = line.match(/^(#{1,6})\s+(.+)$/);
-    if (!m) continue;
-    const level = m[1]!.length;
-    const text = m[2]!.trim().replace(/[#*`>]/g, '').trim().slice(0, 80);
+  for (const block of (await buildSourceIndex(markdown)).blocks.filter(block => block.kind === 'heading')) {
+    const level = block.level!;
+    const text = block.title.slice(0, 80);
     if (!text) continue;
     // 回到正确层级：栈顶层级 >= 当前层级时弹出
     while (stack.length > 1 && stack[stack.length - 1]!.level >= level) stack.pop();

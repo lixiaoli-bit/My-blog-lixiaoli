@@ -456,6 +456,7 @@ export const mindmaps = pgTable(
     articleId: text('article_id'),
     /** simple-mind-map 全量数据 JSON（layout/root/theme/view + 节点锚点） */
     data: text('data').notNull(),
+    revision: integer('revision').notNull().default(0),
     /** 创建时间 */
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
       .notNull()
@@ -470,6 +471,19 @@ export const mindmaps = pgTable(
     index('mindmaps_article_idx').on(table.articleId),
   ],
 );
+
+export const mindmapBindings = pgTable('mindmap_bindings', {
+  id: text('id').primaryKey(), domain: text('domain').notNull(), targetId: text('target_id').notNull(),
+  mapId: text('map_id').notNull(), updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+});
+export const sourceBlockIndexes = pgTable('source_block_indexes', {
+  id: text('id').primaryKey(), data: text('data').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+});
+export const mindmapBackups = pgTable('mindmap_backups', {
+  id: text('id').primaryKey(), mapId: text('map_id').notNull(), data: text('data').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+});
 
 /** 网址导航·分类 */
 export const webCategories = pgTable(

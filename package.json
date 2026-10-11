@@ -8,6 +8,7 @@
     "dev": "astro dev",
     "build": "node scripts/migrate-deployment-schema.mjs && tsx scripts/verify-cloud-databases.mts && astro build",
     "build:desktop": "node scripts/build-desktop.mjs",
+    "build:portable": "node scripts/build-portable.mjs",
     "setup:android": "node scripts/setup-android.mjs",
     "build:android": "node scripts/build-android.mjs",
     "export:android-data": "node scripts/export-android-data.mjs",
