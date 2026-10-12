@@ -173,6 +173,7 @@ export function buildTableMarkdown(parsed: ParsedTable): string {
 
 /** 焦点按编辑器实例隔离，避免一张表重建后把光标送到另一张表。 */
 const pendingTableFocus = new WeakMap<EditorView, { pos: number; r: number; c: number }>();
+const tableCleanup = new WeakMap<HTMLElement, () => void>();
 
 /** 请求重建后把焦点放到指定单元格 */
 function requestTableFocus(view: EditorView, pos: number, r: number, c: number): void {
@@ -248,7 +249,7 @@ export class TableWidget extends WidgetType {
 
     const commit = (next: ParsedTable, focus?: { r: number; c: number }): void => {
       // 防抖期间编辑器可能已被关闭或表格源码已被其它操作改写。
-      if (!view.dom.isConnected || view.state.sliceDoc(this.pos, this.pos + this.raw.length) !== this.raw) return;
+      if (!wrap.isConnected || view.state.sliceDoc(this.pos, this.pos + this.raw.length) !== this.raw) return;
       const markdown = buildTableMarkdown(next);
       if (markdown === this.raw) return;
       if (focus) requestTableFocus(view, this.pos, focus.r, focus.c);
@@ -266,22 +267,45 @@ export class TableWidget extends WidgetType {
 
     /** 防抖回写源码（重建后按 pendingTableFocus 恢复焦点） */
     let timer: number | null = null;
+    let composing = false;
+    let dirty = false;
+    const originalContent = JSON.stringify({ header, rows });
     const flushWrite = (): void => {
       if (timer !== null) window.clearTimeout(timer);
       timer = null;
+      // Persisting here rebuilds the focused cell and breaks the browser's IME session.
+      if (composing) return;
+      dirty = false;
       const data = collect();
+      // Cancelling composition (or editing then restoring a cell) must not create
+      // a history entry merely to normalize the original separator spelling.
+      if (JSON.stringify(data) === originalContent) return;
       commit({ header: data.header, aligns, rows: data.rows }, currentFocus());
     };
     const scheduleWrite = (): void => {
+      dirty = true;
       if (timer !== null) window.clearTimeout(timer);
+      timer = null;
+      if (composing) return;
       timer = window.setTimeout(flushWrite, 300);
     };
+    table.addEventListener('compositionstart', () => {
+      composing = true;
+      if (timer !== null) window.clearTimeout(timer);
+      timer = null;
+    });
+    table.addEventListener('compositionend', () => {
+      composing = false;
+      // Final input can follow compositionend; read DOM after the browser finishes both events.
+      scheduleWrite();
+    });
     // A surrounding column may be moved/merged before focus leaves this table.
     wrap.addEventListener('md-editor-flush', () => {
-      if (timer !== null || pendingWhileMenuOpen) flushWrite();
+      if (dirty || pendingWhileMenuOpen) flushWrite();
     });
 
     const runOperation = (op: TableOperation, focus?: { r: number; c: number }): void => {
+      if (composing) return;
       if (timer !== null) window.clearTimeout(timer);
       timer = null;
       const data = collect();
@@ -480,6 +504,7 @@ export class TableWidget extends WidgetType {
 
     /** 键盘导航与增删行 */
     table.addEventListener('keydown', (e) => {
+      if (composing || e.isComposing || e.keyCode === 229) return;
       const td = e.target as HTMLTableCellElement;
       if (!td || !table.contains(td)) return;
       const r = td.parentElement ? (td.parentElement as HTMLTableRowElement).rowIndex : 0;
@@ -548,7 +573,7 @@ export class TableWidget extends WidgetType {
 
     // 离开表格时立即回写，避免 300ms 防抖尚未结束就点击「完成」导致最后一个字丢失。
     table.addEventListener('focusout', (e) => {
-      if (timer === null || pendingWhileMenuOpen) return;
+      if (!dirty || pendingWhileMenuOpen) return;
       const next = e.relatedTarget as Node | null;
       if (!next || !table.contains(next)) flushWrite();
     });
@@ -560,7 +585,7 @@ export class TableWidget extends WidgetType {
       pendingTableFocus.delete(view);
       window.setTimeout(() => {
         const td = cellAt(r, c);
-        if (td) {
+        if (td && wrap.isConnected) {
           focusCell(td);
           view.dispatch({ selection: { anchor: this.pos } });
         }
@@ -568,6 +593,11 @@ export class TableWidget extends WidgetType {
     }
 
     wrap.append(table, edge);
+    tableCleanup.set(wrap, () => {
+      if (timer !== null) window.clearTimeout(timer);
+      timer = null;
+      closeMenu(false);
+    });
     queueMicrotask(positionEdges);
     return wrap;
   }
@@ -575,5 +605,10 @@ export class TableWidget extends WidgetType {
   /** 防止 CM 把 widget 内的键盘事件当作编辑器输入 */
   ignoreEvent(): boolean {
     return true;
+  }
+
+  destroy(dom: HTMLElement): void {
+    tableCleanup.get(dom)?.();
+    tableCleanup.delete(dom);
   }
 }

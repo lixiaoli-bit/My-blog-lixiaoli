@@ -24,6 +24,8 @@ import type { EditorState, Extension } from '@codemirror/state';
 import { columnBlocks } from './cm-columns-state';
 import { scanMarkdownCallouts } from '../../lib/markdown-callouts';
 import { scanVisualDirectives } from '../../lib/markdown-visual-directives';
+import { InteractiveCodeWidget } from './cm-interactive-html';
+import { appendMarkdownInline, markdownInlineSpans } from './cm-markdown-inline';
 
 /** 隐藏范围（replace 为空，不占视觉空间，仍可编辑） */
 const hide = Decoration.replace({});
@@ -156,7 +158,7 @@ function computeBase(doc: EditorState['doc']): PreviewDecoration[] {
   while (i < lines.length) {
     if (blockedLines.has(i)) { i += 1; continue; }
     const line = lines[i]!;
-    const fence = line.text.match(/^ {0,3}(`{3,}|~{3,})([\w+-]*)\s*$/);
+    const fence = line.text.match(/^ {0,3}(`{3,}|~{3,})([\w+-]*)(.*)$/);
     if (fence) {
       const body: string[] = [];
       let j = i + 1;
@@ -173,7 +175,7 @@ function computeBase(doc: EditorState['doc']): PreviewDecoration[] {
       if (close >= 0) {
         const from = line.from;
         const to = Math.min(doc.length, lines[close]!.to + 1);
-        items.push({ from, to, deco: Decoration.replace({ widget: new CodeWidget(fence[2] ?? '', body.join('\n'), from) }), reveal: true });
+        items.push({ from, to, deco: Decoration.replace({ widget: fence[2] === 'html-interactive' ? new InteractiveCodeWidget(body.join('\n'), fence[3]!.trim(), from) : new CodeWidget(fence[2] ?? '', body.join('\n'), from) }), reveal: true });
         for (let k = i; k <= close; k += 1) blockedLines.add(k);
         i = close + 1;
         continue;
@@ -205,15 +207,21 @@ function computeBase(doc: EditorState['doc']): PreviewDecoration[] {
 
   // ---- 行内：加粗 / 斜体 / 行内代码 / 删除线 / 链接 / 图片 ----
   const inlineRe =
-    /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)|(\*\*)([^*\n]+)\*\*|(\*)([^*\n]+)\*|(`)([^`\n]+)`|(~~)([^~\n]+)~~|\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+    /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)|\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+  const standardInline = markdownInlineSpans(doc);
   lines.forEach((line, idx) => {
     if (blockedLines.has(idx) || noInline.has(idx)) return;
+    const spans = standardInline.get(idx) ?? [];
+    const occupied: Array<[number, number]> = [];
+    const literalRanges = spans.filter(span => span.literal);
     inlineRe.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = inlineRe.exec(line.text))) {
       const base = line.from + m.index;
       const fullLen = m[0].length;
       const fullTo = base + fullLen;
+      if (literalRanges.some(span => base < span.to && fullTo > span.from)) continue;
+      occupied.push([base, fullTo]);
 
       // 图片 ![alt](url)
       if (m[1] !== undefined && m[2] !== undefined) {
@@ -221,29 +229,14 @@ function computeBase(doc: EditorState['doc']): PreviewDecoration[] {
         continue;
       }
 
-      if (m[3] !== undefined) {
-        items.push({ from: base, to: base + 2, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-        items.push({ from: base + 2, to: base + fullLen - 2, deco: Decoration.mark({ class: 'cm-lp-strong' }) });
-        items.push({ from: base + fullLen - 2, to: fullTo, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-      } else if (m[5] !== undefined) {
+      if (m[3] !== undefined && m[4] !== undefined) {
+        const textLen = m[3]!.length;
         items.push({ from: base, to: base + 1, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-        items.push({ from: base + 1, to: base + fullLen - 1, deco: Decoration.mark({ class: 'cm-lp-em' }) });
-        items.push({ from: base + fullLen - 1, to: fullTo, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-      } else if (m[7] !== undefined) {
-        items.push({ from: base, to: base + 1, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-        items.push({ from: base + 1, to: base + fullLen - 1, deco: Decoration.mark({ class: 'cm-lp-inline-code' }) });
-        items.push({ from: base + fullLen - 1, to: fullTo, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-      } else if (m[9] !== undefined) {
-        items.push({ from: base, to: base + 2, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-        items.push({ from: base + 2, to: base + fullLen - 2, deco: Decoration.mark({ class: 'cm-lp-del' }) });
-        items.push({ from: base + fullLen - 2, to: fullTo, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-      } else if (m[11] !== undefined && m[12] !== undefined) {
-        const textLen = m[11]!.length;
-        items.push({ from: base, to: base + 1, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-        items.push({ from: base + 1, to: base + 1 + textLen, deco: Decoration.mark({ class: 'cm-lp-link', attributes: { 'data-href': m[12]! } }) });
+        items.push({ from: base + 1, to: base + 1 + textLen, deco: Decoration.mark({ class: 'cm-lp-link', attributes: { 'data-href': m[4]! } }) });
         items.push({ from: base + 1 + textLen, to: fullTo, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
       }
     }
+    appendMarkdownInline(spans, line, occupied, items);
   });
 
   return items;

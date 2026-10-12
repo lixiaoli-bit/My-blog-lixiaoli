@@ -14,6 +14,7 @@ import { revealVisualHeading, visualDirectivesExtension } from './cm-visual-dire
 import { headingFolding, rememberChildHeadingFolds, restoreChildHeadingFolds, unfoldHeadingAt } from './cm-heading-folding';
 import { scanMarkdownCallouts } from '../../lib/markdown-callouts';
 import { scanVisualDirectives } from '../../lib/markdown-visual-directives';
+import { blockWidgetContent, blockWidgetLayout, blockWidgetResized, destroyBlockWidget, wrapBlockWidget } from './cm-block-widget';
 
 interface Options { childExtensions?: () => Extension; preview: Extension; foldHeadings?: boolean; onSave: () => void; onPaste: (event: ClipboardEvent) => boolean; onContextMenu?: (event: MouseEvent, child: EditorView, parent: EditorView) => boolean }
 const controllers = new WeakMap<HTMLElement, ColumnController>();
@@ -310,15 +311,15 @@ class ColumnController {
 }
 
 class ColumnsWidget extends WidgetType {
-  constructor(readonly block: MarkdownColumns, readonly raw: string, readonly options: Options) { super(); }
-  eq(other: ColumnsWidget): boolean { return this.raw === other.raw && this.block.from === other.block.from; }
+  constructor(readonly block: MarkdownColumns, readonly raw: string, readonly options: Options, readonly layout: number) { super(); }
+  eq(other: ColumnsWidget): boolean { return this.layout === other.layout && this.raw === other.raw && this.block.from === other.block.from; }
   toDOM(parent: EditorView): HTMLElement {
     const dom = document.createElement('div');
     controllers.set(dom, new ColumnController(parent, dom, this.block, this.options));
-    return dom;
+    return wrapBlockWidget(dom, parent, '12px');
   }
-  updateDOM(dom: HTMLElement): boolean { return controllers.get(dom)?.sync(this.block) ?? false; }
-  destroy(dom: HTMLElement): void { controllers.get(dom)?.destroy(); controllers.delete(dom); }
+  updateDOM(dom: HTMLElement): boolean { return controllers.get(blockWidgetContent(dom))?.sync(this.block) ?? false; }
+  destroy(dom: HTMLElement): void { const card = blockWidgetContent(dom); destroyBlockWidget(dom); controllers.get(card)?.destroy(); controllers.delete(card); }
   ignoreEvent(): boolean { return true; }
 }
 
@@ -347,13 +348,13 @@ export function columnsExtension(options: Options): Extension {
     const source = state.doc.toString();
     const owners = [...scanMarkdownCallouts(source), ...scanVisualDirectives(source)];
     return Decoration.set(columnBlocks(state.doc).filter(block => !owners.some(owner => owner.from <= block.from && owner.to >= block.to)).map(block => Decoration.replace({
-      block: true, widget: new ColumnsWidget(block, state.sliceDoc(block.from, block.to), options),
+      block: true, widget: new ColumnsWidget(block, state.sliceDoc(block.from, block.to), options, state.field(blockWidgetLayout)),
     }).range(block.from, block.to)));
   };
   const field = StateField.define<DecorationSet>({
     create: build,
-    update: (value, transaction) => transaction.docChanged || transaction.effects.some((effect) => effect.is(setColumnsSource)) ? build(transaction.state) : value,
+    update: (value, transaction) => transaction.docChanged || transaction.effects.some((effect) => effect.is(setColumnsSource) || effect.is(blockWidgetResized)) ? build(transaction.state) : value,
     provide: (field) => EditorView.decorations.from(field),
   });
-  return [columnsTransactionCache, columnsSource, field];
+  return [blockWidgetLayout, columnsTransactionCache, columnsSource, field];
 }

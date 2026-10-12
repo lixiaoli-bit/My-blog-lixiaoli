@@ -12,6 +12,7 @@ import type { VisualBlock, VisualItem } from '../../lib/markdown-visual-directiv
 import { columnBlocks, registerEditorOwner, rootEditor, setColumnTarget } from './cm-columns-state';
 import { scanMarkdownCallouts } from '../../lib/markdown-callouts';
 import { headingFolding, rememberChildHeadingFolds, restoreChildHeadingFolds, unfoldHeadingAt } from './cm-heading-folding';
+import { blockWidgetContent, blockWidgetLayout, blockWidgetResized, destroyBlockWidget, wrapBlockWidget } from './cm-block-widget';
 
 export const setVisualSource = StateEffect.define<boolean>();
 const visualSource = StateField.define<boolean>({
@@ -296,11 +297,11 @@ class VisualController {
   destroy(): void { this.disposed = true; this.closeChildren(); }
 }
 class VisualWidget extends WidgetType {
-  constructor(readonly block: VisualBlock, readonly options: Options) { super(); }
-  eq(other: VisualWidget): boolean { return this.block.raw === other.block.raw && this.block.from === other.block.from; }
-  toDOM(view: EditorView): HTMLElement { const dom = document.createElement('div'); controllers.set(dom, new VisualController(view, dom, this.block, this.options)); return dom; }
-  updateDOM(dom: HTMLElement): boolean { return controllers.get(dom)?.sync(this.block) ?? false; }
-  destroy(dom: HTMLElement): void { controllers.get(dom)?.destroy(); controllers.delete(dom); }
+  constructor(readonly block: VisualBlock, readonly options: Options, readonly layout: number) { super(); }
+  eq(other: VisualWidget): boolean { return this.layout === other.layout && this.block.raw === other.block.raw && this.block.from === other.block.from; }
+  toDOM(view: EditorView): HTMLElement { const dom = document.createElement('div'); controllers.set(dom, new VisualController(view, dom, this.block, this.options)); return wrapBlockWidget(dom, view, '1rem'); }
+  updateDOM(dom: HTMLElement): boolean { return controllers.get(blockWidgetContent(dom))?.sync(this.block) ?? false; }
+  destroy(dom: HTMLElement): void { const card = blockWidgetContent(dom); destroyBlockWidget(dom); controllers.get(card)?.destroy(); controllers.delete(card); }
   ignoreEvent(): boolean { return true; }
 }
 export function revealVisualHeading(parent: EditorView, pos: number): boolean {
@@ -317,12 +318,12 @@ export function visualDirectivesExtension(options: Options = {}): Extension {
     const columns = [...columnBlocks(state.doc), ...scanMarkdownCallouts(state.doc.toString())];
     return Decoration.set(scanVisualDirectives(state.doc.toString()).filter((block) =>
       !columns.some((column) => block.from >= column.from && block.to <= column.to)).map((block) =>
-      Decoration.replace({ block: true, widget: new VisualWidget(block, options) }).range(block.from, block.to)));
+      Decoration.replace({ block: true, widget: new VisualWidget(block, options, state.field(blockWidgetLayout)) }).range(block.from, block.to)));
   };
   const field = StateField.define<DecorationSet>({
     create: build,
-    update: (value, tr) => tr.docChanged || tr.effects.some((effect) => effect.is(setVisualSource)) ? build(tr.state) : value,
+    update: (value, tr) => tr.docChanged || tr.effects.some((effect) => effect.is(setVisualSource) || effect.is(blockWidgetResized)) ? build(tr.state) : value,
     provide: (field) => EditorView.decorations.from(field),
   });
-  return [visualSource, field];
+  return [blockWidgetLayout, visualSource, field];
 }

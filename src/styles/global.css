@@ -3156,7 +3156,7 @@
 }
 .cm-columns-widget {
   container-type: inline-size;
-  margin: 12px 0;
+  margin: 0;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-background);
@@ -3732,7 +3732,7 @@ g.smm-node-highlight rect {
 .md-context-field select, .md-context-field input, .md-context-custom > input { width: 100%; padding: .35rem .5rem; border: 1px solid var(--color-border); border-radius: .35rem; background: var(--color-background); color: var(--color-foreground); }
 .md-context-custom > input { width: calc(100% - 1.1rem); margin: .1rem .55rem .4rem; }
 .md-context-custom > input[hidden] { display: none; }
-.cm-visual-directive { margin: 1rem 0; border: 1px solid var(--color-border); border-radius: .75rem; background: var(--color-card); color: var(--color-foreground); overflow: hidden; }
+.cm-visual-directive { margin: 0; border: 1px solid var(--color-border); border-radius: .75rem; background: var(--color-card); color: var(--color-foreground); overflow: hidden; }
 .cm-visual-actions, .cm-visual-row { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; padding: .4rem .65rem; font-size: .78rem; }
 .cm-visual-actions { justify-content: space-between; border-bottom: 1px solid var(--color-border); color: var(--color-muted-foreground); }
 .cm-visual-directive button { cursor: pointer; }

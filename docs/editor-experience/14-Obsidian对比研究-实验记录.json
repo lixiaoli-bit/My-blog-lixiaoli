@@ -1,0 +1,3465 @@
+{
+  "date": "2026-10-12",
+  "phase": "A research only",
+  "limitations": [
+    "My-Blog browser fixtures use real production components but mocked APIs and reduced utility CSS.",
+    "IME replay uses CDP synthetic composition and is not a real Windows IME manual acceptance.",
+    "Obsidian runtime uses app:// which REA 6.4.0 passive Electron listing excludes; runtime observations below are Playwright/CDP probes, not REA runtime Evidence.",
+    "Full bundle semantic reconstruction was resource constrained; selected inert assignments have source provenance and still unresolved bindings."
+  ],
+  "fixtures": {
+    "myblog-clicks": [
+      {
+        "scenario": "ordinary-quotes",
+        "fraction": 0.02,
+        "geometry": {
+          "expected": 8,
+          "c": {
+            "x": 104,
+            "y": 58.796875,
+            "width": 0,
+            "height": 20,
+            "top": 58.796875,
+            "right": 104,
+            "bottom": 78.796875,
+            "left": 104
+          },
+          "boxes": [
+            {
+              "x": 104,
+              "y": 26,
+              "width": 992,
+              "height": 28.796875,
+              "top": 26,
+              "right": 1096,
+              "bottom": 54.796875,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 83.59375,
+              "width": 992,
+              "height": 28.796875,
+              "top": 83.59375,
+              "right": 1096,
+              "bottom": 112.390625,
+              "left": 104
+            }
+          ],
+          "x": 120,
+          "y": 68.796875,
+          "rootBlankLines": [
+            {
+              "x": 104,
+              "y": 54.796875,
+              "width": 992,
+              "height": 28.796875,
+              "top": 54.796875,
+              "right": 1096,
+              "bottom": 83.59375,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 112.390625,
+              "width": 992,
+              "height": 28.796875,
+              "top": 112.390625,
+              "right": 1096,
+              "bottom": 141.1875,
+              "left": 104
+            }
+          ]
+        },
+        "before": {
+          "source": "> 第一块引用\n\n> 第二块引用\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 8,
+                "head": 8
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 0,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "after": {
+          "source": "> 第一块引用\n定位\n> 第二块引用\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 10,
+                "head": 10
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 1,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "pass": true
+      },
+      {
+        "scenario": "ordinary-quotes",
+        "fraction": 0.5,
+        "geometry": {
+          "expected": 8,
+          "c": {
+            "x": 104,
+            "y": 58.796875,
+            "width": 0,
+            "height": 20,
+            "top": 58.796875,
+            "right": 104,
+            "bottom": 78.796875,
+            "left": 104
+          },
+          "boxes": [
+            {
+              "x": 104,
+              "y": 26,
+              "width": 992,
+              "height": 28.796875,
+              "top": 26,
+              "right": 1096,
+              "bottom": 54.796875,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 83.59375,
+              "width": 992,
+              "height": 28.796875,
+              "top": 83.59375,
+              "right": 1096,
+              "bottom": 112.390625,
+              "left": 104
+            }
+          ],
+          "x": 600,
+          "y": 68.796875,
+          "rootBlankLines": [
+            {
+              "x": 104,
+              "y": 54.796875,
+              "width": 992,
+              "height": 28.796875,
+              "top": 54.796875,
+              "right": 1096,
+              "bottom": 83.59375,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 112.390625,
+              "width": 992,
+              "height": 28.796875,
+              "top": 112.390625,
+              "right": 1096,
+              "bottom": 141.1875,
+              "left": 104
+            }
+          ]
+        },
+        "before": {
+          "source": "> 第一块引用\n\n> 第二块引用\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 8,
+                "head": 8
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 0,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "after": {
+          "source": "> 第一块引用\n定位\n> 第二块引用\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 10,
+                "head": 10
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 1,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "pass": true
+      },
+      {
+        "scenario": "ordinary-quotes",
+        "fraction": 0.95,
+        "geometry": {
+          "expected": 8,
+          "c": {
+            "x": 104,
+            "y": 58.796875,
+            "width": 0,
+            "height": 20,
+            "top": 58.796875,
+            "right": 104,
+            "bottom": 78.796875,
+            "left": 104
+          },
+          "boxes": [
+            {
+              "x": 104,
+              "y": 26,
+              "width": 992,
+              "height": 28.796875,
+              "top": 26,
+              "right": 1096,
+              "bottom": 54.796875,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 83.59375,
+              "width": 992,
+              "height": 28.796875,
+              "top": 83.59375,
+              "right": 1096,
+              "bottom": 112.390625,
+              "left": 104
+            }
+          ],
+          "x": 1050,
+          "y": 68.796875,
+          "rootBlankLines": [
+            {
+              "x": 104,
+              "y": 54.796875,
+              "width": 992,
+              "height": 28.796875,
+              "top": 54.796875,
+              "right": 1096,
+              "bottom": 83.59375,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 112.390625,
+              "width": 992,
+              "height": 28.796875,
+              "top": 112.390625,
+              "right": 1096,
+              "bottom": 141.1875,
+              "left": 104
+            }
+          ]
+        },
+        "before": {
+          "source": "> 第一块引用\n\n> 第二块引用\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 8,
+                "head": 8
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 0,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "after": {
+          "source": "> 第一块引用\n定位\n> 第二块引用\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 10,
+                "head": 10
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 1,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "pass": true
+      },
+      {
+        "scenario": "callouts",
+        "fraction": 0.02,
+        "geometry": {
+          "expected": 22,
+          "c": {
+            "x": 104,
+            "y": 124,
+            "width": 0,
+            "height": 20,
+            "top": 124,
+            "right": 104,
+            "bottom": 144,
+            "left": 104
+          },
+          "boxes": [
+            {
+              "x": 104,
+              "y": 34,
+              "width": 992,
+              "height": 78,
+              "top": 34,
+              "right": 1096,
+              "bottom": 112,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 156.796875,
+              "width": 992,
+              "height": 78,
+              "top": 156.796875,
+              "right": 1096,
+              "bottom": 234.796875,
+              "left": 104
+            }
+          ],
+          "x": 120,
+          "y": 134,
+          "rootBlankLines": [
+            {
+              "x": 104,
+              "y": 120,
+              "width": 992,
+              "height": 28.796875,
+              "top": 120,
+              "right": 1096,
+              "bottom": 148.796875,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 242.796875,
+              "width": 992,
+              "height": 28.796875,
+              "top": 242.796875,
+              "right": 1096,
+              "bottom": 271.59375,
+              "left": 104
+            }
+          ]
+        },
+        "before": {
+          "source": "> [!note] 第一块\n> 第一块正文\n\n> [!note] 第二块\n> 第二块正文\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 23,
+                "head": 23
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 0,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "after": {
+          "source": "> [!note] 第一块\n> 第一块正文\n\n> [!note] 第二块\n> 第二块正文\n定位\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 47,
+                "head": 47
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 1,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "pass": false
+      },
+      {
+        "scenario": "callouts",
+        "fraction": 0.5,
+        "geometry": {
+          "expected": 22,
+          "c": {
+            "x": 104,
+            "y": 124,
+            "width": 0,
+            "height": 20,
+            "top": 124,
+            "right": 104,
+            "bottom": 144,
+            "left": 104
+          },
+          "boxes": [
+            {
+              "x": 104,
+              "y": 34,
+              "width": 992,
+              "height": 78,
+              "top": 34,
+              "right": 1096,
+              "bottom": 112,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 156.796875,
+              "width": 992,
+              "height": 78,
+              "top": 156.796875,
+              "right": 1096,
+              "bottom": 234.796875,
+              "left": 104
+            }
+          ],
+          "x": 600,
+          "y": 134,
+          "rootBlankLines": [
+            {
+              "x": 104,
+              "y": 120,
+              "width": 992,
+              "height": 28.796875,
+              "top": 120,
+              "right": 1096,
+              "bottom": 148.796875,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 242.796875,
+              "width": 992,
+              "height": 28.796875,
+              "top": 242.796875,
+              "right": 1096,
+              "bottom": 271.59375,
+              "left": 104
+            }
+          ]
+        },
+        "before": {
+          "source": "> [!note] 第一块\n> 第一块正文\n\n> [!note] 第二块\n> 第二块正文\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 23,
+                "head": 23
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 0,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "after": {
+          "source": "> [!note] 第一块\n> 第一块正文\n\n> [!note] 第二块\n> 第二块正文\n定位\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 47,
+                "head": 47
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 1,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "pass": false
+      },
+      {
+        "scenario": "callouts",
+        "fraction": 0.95,
+        "geometry": {
+          "expected": 22,
+          "c": {
+            "x": 104,
+            "y": 124,
+            "width": 0,
+            "height": 20,
+            "top": 124,
+            "right": 104,
+            "bottom": 144,
+            "left": 104
+          },
+          "boxes": [
+            {
+              "x": 104,
+              "y": 34,
+              "width": 992,
+              "height": 78,
+              "top": 34,
+              "right": 1096,
+              "bottom": 112,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 156.796875,
+              "width": 992,
+              "height": 78,
+              "top": 156.796875,
+              "right": 1096,
+              "bottom": 234.796875,
+              "left": 104
+            }
+          ],
+          "x": 1050,
+          "y": 134,
+          "rootBlankLines": [
+            {
+              "x": 104,
+              "y": 120,
+              "width": 992,
+              "height": 28.796875,
+              "top": 120,
+              "right": 1096,
+              "bottom": 148.796875,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 242.796875,
+              "width": 992,
+              "height": 28.796875,
+              "top": 242.796875,
+              "right": 1096,
+              "bottom": 271.59375,
+              "left": 104
+            }
+          ]
+        },
+        "before": {
+          "source": "> [!note] 第一块\n> 第一块正文\n\n> [!note] 第二块\n> 第二块正文\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 23,
+                "head": 23
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 0,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "after": {
+          "source": "> [!note] 第一块\n> 第一块正文\n\n> [!note] 第二块\n> 第二块正文\n定位\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 47,
+                "head": 47
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 1,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "pass": false
+      },
+      {
+        "scenario": "folded-callouts",
+        "fraction": 0.02,
+        "geometry": {
+          "expected": 23,
+          "c": {
+            "x": 104,
+            "y": 76,
+            "width": 0,
+            "height": 20,
+            "top": 76,
+            "right": 104,
+            "bottom": 96,
+            "left": 104
+          },
+          "boxes": [
+            {
+              "x": 104,
+              "y": 34,
+              "width": 992,
+              "height": 30,
+              "top": 34,
+              "right": 1096,
+              "bottom": 64,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 108.796875,
+              "width": 992,
+              "height": 30,
+              "top": 108.796875,
+              "right": 1096,
+              "bottom": 138.796875,
+              "left": 104
+            }
+          ],
+          "x": 120,
+          "y": 86,
+          "rootBlankLines": [
+            {
+              "x": 104,
+              "y": 72,
+              "width": 992,
+              "height": 28.796875,
+              "top": 72,
+              "right": 1096,
+              "bottom": 100.796875,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 146.796875,
+              "width": 992,
+              "height": 28.796875,
+              "top": 146.796875,
+              "right": 1096,
+              "bottom": 175.59375,
+              "left": 104
+            }
+          ]
+        },
+        "before": {
+          "source": "> [!note]- 第一块\n> 第一块正文\n\n> [!note]- 第二块\n> 第二块正文\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 24,
+                "head": 24
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 0,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "after": {
+          "source": "> [!note]- 第一块\n> 第一块正文\n\n> [!note]- 第二块\n> 第二块正文\n定位\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 49,
+                "head": 49
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 1,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "pass": false
+      },
+      {
+        "scenario": "folded-callouts",
+        "fraction": 0.5,
+        "geometry": {
+          "expected": 23,
+          "c": {
+            "x": 104,
+            "y": 76,
+            "width": 0,
+            "height": 20,
+            "top": 76,
+            "right": 104,
+            "bottom": 96,
+            "left": 104
+          },
+          "boxes": [
+            {
+              "x": 104,
+              "y": 34,
+              "width": 992,
+              "height": 30,
+              "top": 34,
+              "right": 1096,
+              "bottom": 64,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 108.796875,
+              "width": 992,
+              "height": 30,
+              "top": 108.796875,
+              "right": 1096,
+              "bottom": 138.796875,
+              "left": 104
+            }
+          ],
+          "x": 600,
+          "y": 86,
+          "rootBlankLines": [
+            {
+              "x": 104,
+              "y": 72,
+              "width": 992,
+              "height": 28.796875,
+              "top": 72,
+              "right": 1096,
+              "bottom": 100.796875,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 146.796875,
+              "width": 992,
+              "height": 28.796875,
+              "top": 146.796875,
+              "right": 1096,
+              "bottom": 175.59375,
+              "left": 104
+            }
+          ]
+        },
+        "before": {
+          "source": "> [!note]- 第一块\n> 第一块正文\n\n> [!note]- 第二块\n> 第二块正文\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 24,
+                "head": 24
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 0,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "after": {
+          "source": "> [!note]- 第一块\n> 第一块正文\n\n> [!note]- 第二块\n> 第二块正文\n定位\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 49,
+                "head": 49
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 1,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "pass": false
+      },
+      {
+        "scenario": "folded-callouts",
+        "fraction": 0.95,
+        "geometry": {
+          "expected": 23,
+          "c": {
+            "x": 104,
+            "y": 76,
+            "width": 0,
+            "height": 20,
+            "top": 76,
+            "right": 104,
+            "bottom": 96,
+            "left": 104
+          },
+          "boxes": [
+            {
+              "x": 104,
+              "y": 34,
+              "width": 992,
+              "height": 30,
+              "top": 34,
+              "right": 1096,
+              "bottom": 64,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 108.796875,
+              "width": 992,
+              "height": 30,
+              "top": 108.796875,
+              "right": 1096,
+              "bottom": 138.796875,
+              "left": 104
+            }
+          ],
+          "x": 1050,
+          "y": 86,
+          "rootBlankLines": [
+            {
+              "x": 104,
+              "y": 72,
+              "width": 992,
+              "height": 28.796875,
+              "top": 72,
+              "right": 1096,
+              "bottom": 100.796875,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 146.796875,
+              "width": 992,
+              "height": 28.796875,
+              "top": 146.796875,
+              "right": 1096,
+              "bottom": 175.59375,
+              "left": 104
+            }
+          ]
+        },
+        "before": {
+          "source": "> [!note]- 第一块\n> 第一块正文\n\n> [!note]- 第二块\n> 第二块正文\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 24,
+                "head": 24
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 0,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "after": {
+          "source": "> [!note]- 第一块\n> 第一块正文\n\n> [!note]- 第二块\n> 第二块正文\n定位\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 49,
+                "head": 49
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 1,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "pass": false
+      },
+      {
+        "scenario": "nested-quotes",
+        "fraction": 0.02,
+        "geometry": {
+          "expected": 10,
+          "c": {
+            "x": 104,
+            "y": 58.796875,
+            "width": 0,
+            "height": 20,
+            "top": 58.796875,
+            "right": 104,
+            "bottom": 78.796875,
+            "left": 104
+          },
+          "boxes": [
+            {
+              "x": 104,
+              "y": 26,
+              "width": 992,
+              "height": 28.796875,
+              "top": 26,
+              "right": 1096,
+              "bottom": 54.796875,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 83.59375,
+              "width": 992,
+              "height": 28.796875,
+              "top": 83.59375,
+              "right": 1096,
+              "bottom": 112.390625,
+              "left": 104
+            }
+          ],
+          "x": 120,
+          "y": 68.796875,
+          "rootBlankLines": [
+            {
+              "x": 104,
+              "y": 54.796875,
+              "width": 992,
+              "height": 28.796875,
+              "top": 54.796875,
+              "right": 1096,
+              "bottom": 83.59375,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 112.390625,
+              "width": 992,
+              "height": 28.796875,
+              "top": 112.390625,
+              "right": 1096,
+              "bottom": 141.1875,
+              "left": 104
+            }
+          ]
+        },
+        "before": {
+          "source": "> > 嵌套引用一\n\n> > 嵌套引用二\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 10,
+                "head": 10
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 0,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "after": {
+          "source": "> > 嵌套引用一\n定位\n> > 嵌套引用二\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 12,
+                "head": 12
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 1,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "pass": true
+      },
+      {
+        "scenario": "nested-quotes",
+        "fraction": 0.5,
+        "geometry": {
+          "expected": 10,
+          "c": {
+            "x": 104,
+            "y": 58.796875,
+            "width": 0,
+            "height": 20,
+            "top": 58.796875,
+            "right": 104,
+            "bottom": 78.796875,
+            "left": 104
+          },
+          "boxes": [
+            {
+              "x": 104,
+              "y": 26,
+              "width": 992,
+              "height": 28.796875,
+              "top": 26,
+              "right": 1096,
+              "bottom": 54.796875,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 83.59375,
+              "width": 992,
+              "height": 28.796875,
+              "top": 83.59375,
+              "right": 1096,
+              "bottom": 112.390625,
+              "left": 104
+            }
+          ],
+          "x": 600,
+          "y": 68.796875,
+          "rootBlankLines": [
+            {
+              "x": 104,
+              "y": 54.796875,
+              "width": 992,
+              "height": 28.796875,
+              "top": 54.796875,
+              "right": 1096,
+              "bottom": 83.59375,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 112.390625,
+              "width": 992,
+              "height": 28.796875,
+              "top": 112.390625,
+              "right": 1096,
+              "bottom": 141.1875,
+              "left": 104
+            }
+          ]
+        },
+        "before": {
+          "source": "> > 嵌套引用一\n\n> > 嵌套引用二\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 10,
+                "head": 10
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 0,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "after": {
+          "source": "> > 嵌套引用一\n定位\n> > 嵌套引用二\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 12,
+                "head": 12
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 1,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "pass": true
+      },
+      {
+        "scenario": "nested-quotes",
+        "fraction": 0.95,
+        "geometry": {
+          "expected": 10,
+          "c": {
+            "x": 104,
+            "y": 58.796875,
+            "width": 0,
+            "height": 20,
+            "top": 58.796875,
+            "right": 104,
+            "bottom": 78.796875,
+            "left": 104
+          },
+          "boxes": [
+            {
+              "x": 104,
+              "y": 26,
+              "width": 992,
+              "height": 28.796875,
+              "top": 26,
+              "right": 1096,
+              "bottom": 54.796875,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 83.59375,
+              "width": 992,
+              "height": 28.796875,
+              "top": 83.59375,
+              "right": 1096,
+              "bottom": 112.390625,
+              "left": 104
+            }
+          ],
+          "x": 1050,
+          "y": 68.796875,
+          "rootBlankLines": [
+            {
+              "x": 104,
+              "y": 54.796875,
+              "width": 992,
+              "height": 28.796875,
+              "top": 54.796875,
+              "right": 1096,
+              "bottom": 83.59375,
+              "left": 104
+            },
+            {
+              "x": 104,
+              "y": 112.390625,
+              "width": 992,
+              "height": 28.796875,
+              "top": 112.390625,
+              "right": 1096,
+              "bottom": 141.1875,
+              "left": 104
+            }
+          ]
+        },
+        "before": {
+          "source": "> > 嵌套引用一\n\n> > 嵌套引用二\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 10,
+                "head": 10
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 0,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "after": {
+          "source": "> > 嵌套引用一\n定位\n> > 嵌套引用二\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 12,
+                "head": 12
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 1,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        },
+        "pass": true
+      }
+    ],
+    "obsidian-clicks": [
+      {
+        "scenario": "ordinary-quotes",
+        "fraction": 0.02,
+        "geometry": {
+          "expected": 8,
+          "c": {
+            "x": 420,
+            "y": 180.046875,
+            "width": 0,
+            "height": 20,
+            "top": 180.046875,
+            "right": 420,
+            "bottom": 200.046875,
+            "left": 420
+          },
+          "x": 431.2,
+          "y": 190.046875,
+          "dom": [
+            {
+              "cls": "cm-line HyperMD-quote HyperMD-quote-1",
+              "rect": {
+                "x": 420,
+                "y": 154.046875,
+                "width": 560,
+                "height": 24,
+                "top": 154.046875,
+                "right": 980,
+                "bottom": 178.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 178.046875,
+                "width": 560,
+                "height": 24,
+                "top": 178.046875,
+                "right": 980,
+                "bottom": 202.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line HyperMD-quote HyperMD-quote-1",
+              "rect": {
+                "x": 420,
+                "y": 202.046875,
+                "width": 560,
+                "height": 24,
+                "top": 202.046875,
+                "right": 980,
+                "bottom": 226.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 226.046875,
+                "width": 560,
+                "height": 24,
+                "top": 226.046875,
+                "right": 980,
+                "bottom": 250.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line cm-active",
+              "rect": {
+                "x": 420,
+                "y": 250.046875,
+                "width": 560,
+                "height": 24,
+                "top": 250.046875,
+                "right": 980,
+                "bottom": 274.046875,
+                "left": 420
+              }
+            }
+          ]
+        },
+        "before": {
+          "source": "> 第一块引用\n\n> 第二块引用\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 8,
+                "head": 8
+              }
+            ],
+            "main": 0
+          },
+          "focus": true
+        },
+        "after": "> 第一块引用\n定位\n> 第二块引用\n\n尾部正文",
+        "pass": true
+      },
+      {
+        "scenario": "ordinary-quotes",
+        "fraction": 0.5,
+        "geometry": {
+          "expected": 8,
+          "c": {
+            "x": 420,
+            "y": 180.046875,
+            "width": 0,
+            "height": 20,
+            "top": 180.046875,
+            "right": 420,
+            "bottom": 200.046875,
+            "left": 420
+          },
+          "x": 700,
+          "y": 190.046875,
+          "dom": [
+            {
+              "cls": "cm-line HyperMD-quote HyperMD-quote-1",
+              "rect": {
+                "x": 420,
+                "y": 154.046875,
+                "width": 560,
+                "height": 24,
+                "top": 154.046875,
+                "right": 980,
+                "bottom": 178.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 178.046875,
+                "width": 560,
+                "height": 24,
+                "top": 178.046875,
+                "right": 980,
+                "bottom": 202.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line HyperMD-quote HyperMD-quote-1",
+              "rect": {
+                "x": 420,
+                "y": 202.046875,
+                "width": 560,
+                "height": 24,
+                "top": 202.046875,
+                "right": 980,
+                "bottom": 226.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 226.046875,
+                "width": 560,
+                "height": 24,
+                "top": 226.046875,
+                "right": 980,
+                "bottom": 250.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line cm-active",
+              "rect": {
+                "x": 420,
+                "y": 250.046875,
+                "width": 560,
+                "height": 24,
+                "top": 250.046875,
+                "right": 980,
+                "bottom": 274.046875,
+                "left": 420
+              }
+            }
+          ]
+        },
+        "before": {
+          "source": "> 第一块引用\n\n> 第二块引用\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 8,
+                "head": 8
+              }
+            ],
+            "main": 0
+          },
+          "focus": true
+        },
+        "after": "> 第一块引用\n定位\n> 第二块引用\n\n尾部正文",
+        "pass": true
+      },
+      {
+        "scenario": "ordinary-quotes",
+        "fraction": 0.95,
+        "geometry": {
+          "expected": 8,
+          "c": {
+            "x": 420,
+            "y": 180.046875,
+            "width": 0,
+            "height": 20,
+            "top": 180.046875,
+            "right": 420,
+            "bottom": 200.046875,
+            "left": 420
+          },
+          "x": 952,
+          "y": 190.046875,
+          "dom": [
+            {
+              "cls": "cm-line HyperMD-quote HyperMD-quote-1",
+              "rect": {
+                "x": 420,
+                "y": 154.046875,
+                "width": 560,
+                "height": 24,
+                "top": 154.046875,
+                "right": 980,
+                "bottom": 178.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 178.046875,
+                "width": 560,
+                "height": 24,
+                "top": 178.046875,
+                "right": 980,
+                "bottom": 202.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line HyperMD-quote HyperMD-quote-1",
+              "rect": {
+                "x": 420,
+                "y": 202.046875,
+                "width": 560,
+                "height": 24,
+                "top": 202.046875,
+                "right": 980,
+                "bottom": 226.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 226.046875,
+                "width": 560,
+                "height": 24,
+                "top": 226.046875,
+                "right": 980,
+                "bottom": 250.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line cm-active",
+              "rect": {
+                "x": 420,
+                "y": 250.046875,
+                "width": 560,
+                "height": 24,
+                "top": 250.046875,
+                "right": 980,
+                "bottom": 274.046875,
+                "left": 420
+              }
+            }
+          ]
+        },
+        "before": {
+          "source": "> 第一块引用\n\n> 第二块引用\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 8,
+                "head": 8
+              }
+            ],
+            "main": 0
+          },
+          "focus": true
+        },
+        "after": "> 第一块引用\n定位\n> 第二块引用\n\n尾部正文",
+        "pass": true
+      },
+      {
+        "scenario": "callouts",
+        "fraction": 0.02,
+        "geometry": {
+          "expected": 22,
+          "c": {
+            "x": 420,
+            "y": 256.84375,
+            "width": 0,
+            "height": 20,
+            "top": 256.84375,
+            "right": 420,
+            "bottom": 276.84375,
+            "left": 420
+          },
+          "x": 431.2,
+          "y": 266.84375,
+          "dom": [
+            {
+              "cls": "cm-embed-block cm-callout",
+              "rect": {
+                "x": 420,
+                "y": 154.046875,
+                "width": 560,
+                "height": 100.796875,
+                "top": 154.046875,
+                "right": 980,
+                "bottom": 254.84375,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 254.84375,
+                "width": 560,
+                "height": 24,
+                "top": 254.84375,
+                "right": 980,
+                "bottom": 278.84375,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-embed-block cm-callout",
+              "rect": {
+                "x": 420,
+                "y": 278.84375,
+                "width": 560,
+                "height": 100.796875,
+                "top": 278.84375,
+                "right": 980,
+                "bottom": 379.640625,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 379.640625,
+                "width": 560,
+                "height": 24,
+                "top": 379.640625,
+                "right": 980,
+                "bottom": 403.640625,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line cm-active",
+              "rect": {
+                "x": 420,
+                "y": 403.640625,
+                "width": 560,
+                "height": 24,
+                "top": 403.640625,
+                "right": 980,
+                "bottom": 427.640625,
+                "left": 420
+              }
+            }
+          ]
+        },
+        "before": {
+          "source": "> [!note] 第一块\n> 第一块正文\n\n> [!note] 第二块\n> 第二块正文\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 22,
+                "head": 22
+              }
+            ],
+            "main": 0
+          },
+          "focus": true
+        },
+        "after": "> [!note] 第一块\n> 第一块正文\n定位\n> [!note] 第二块\n> 第二块正文\n\n尾部正文",
+        "pass": true
+      },
+      {
+        "scenario": "callouts",
+        "fraction": 0.5,
+        "geometry": {
+          "expected": 22,
+          "c": {
+            "x": 420,
+            "y": 256.84375,
+            "width": 0,
+            "height": 20,
+            "top": 256.84375,
+            "right": 420,
+            "bottom": 276.84375,
+            "left": 420
+          },
+          "x": 700,
+          "y": 266.84375,
+          "dom": [
+            {
+              "cls": "cm-embed-block cm-callout",
+              "rect": {
+                "x": 420,
+                "y": 154.046875,
+                "width": 560,
+                "height": 100.796875,
+                "top": 154.046875,
+                "right": 980,
+                "bottom": 254.84375,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 254.84375,
+                "width": 560,
+                "height": 24,
+                "top": 254.84375,
+                "right": 980,
+                "bottom": 278.84375,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-embed-block cm-callout",
+              "rect": {
+                "x": 420,
+                "y": 278.84375,
+                "width": 560,
+                "height": 100.796875,
+                "top": 278.84375,
+                "right": 980,
+                "bottom": 379.640625,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 379.640625,
+                "width": 560,
+                "height": 24,
+                "top": 379.640625,
+                "right": 980,
+                "bottom": 403.640625,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line cm-active",
+              "rect": {
+                "x": 420,
+                "y": 403.640625,
+                "width": 560,
+                "height": 24,
+                "top": 403.640625,
+                "right": 980,
+                "bottom": 427.640625,
+                "left": 420
+              }
+            }
+          ]
+        },
+        "before": {
+          "source": "> [!note] 第一块\n> 第一块正文\n\n> [!note] 第二块\n> 第二块正文\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 22,
+                "head": 22
+              }
+            ],
+            "main": 0
+          },
+          "focus": true
+        },
+        "after": "> [!note] 第一块\n> 第一块正文\n定位\n> [!note] 第二块\n> 第二块正文\n\n尾部正文",
+        "pass": true
+      },
+      {
+        "scenario": "callouts",
+        "fraction": 0.95,
+        "geometry": {
+          "expected": 22,
+          "c": {
+            "x": 420,
+            "y": 256.84375,
+            "width": 0,
+            "height": 20,
+            "top": 256.84375,
+            "right": 420,
+            "bottom": 276.84375,
+            "left": 420
+          },
+          "x": 952,
+          "y": 266.84375,
+          "dom": [
+            {
+              "cls": "cm-embed-block cm-callout",
+              "rect": {
+                "x": 420,
+                "y": 154.046875,
+                "width": 560,
+                "height": 100.796875,
+                "top": 154.046875,
+                "right": 980,
+                "bottom": 254.84375,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 254.84375,
+                "width": 560,
+                "height": 24,
+                "top": 254.84375,
+                "right": 980,
+                "bottom": 278.84375,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-embed-block cm-callout",
+              "rect": {
+                "x": 420,
+                "y": 278.84375,
+                "width": 560,
+                "height": 100.796875,
+                "top": 278.84375,
+                "right": 980,
+                "bottom": 379.640625,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 379.640625,
+                "width": 560,
+                "height": 24,
+                "top": 379.640625,
+                "right": 980,
+                "bottom": 403.640625,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line cm-active",
+              "rect": {
+                "x": 420,
+                "y": 403.640625,
+                "width": 560,
+                "height": 24,
+                "top": 403.640625,
+                "right": 980,
+                "bottom": 427.640625,
+                "left": 420
+              }
+            }
+          ]
+        },
+        "before": {
+          "source": "> [!note] 第一块\n> 第一块正文\n\n> [!note] 第二块\n> 第二块正文\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 22,
+                "head": 22
+              }
+            ],
+            "main": 0
+          },
+          "focus": true
+        },
+        "after": "> [!note] 第一块\n> 第一块正文\n定位\n> [!note] 第二块\n> 第二块正文\n\n尾部正文",
+        "pass": true
+      },
+      {
+        "scenario": "folded-callouts",
+        "fraction": 0.02,
+        "geometry": {
+          "expected": 23,
+          "c": {
+            "x": 420,
+            "y": 200.84375,
+            "width": 0,
+            "height": 20,
+            "top": 200.84375,
+            "right": 420,
+            "bottom": 220.84375,
+            "left": 420
+          },
+          "x": 431.2,
+          "y": 210.84375,
+          "dom": [
+            {
+              "cls": "cm-embed-block cm-callout",
+              "rect": {
+                "x": 420,
+                "y": 154.046875,
+                "width": 560,
+                "height": 44.796875,
+                "top": 154.046875,
+                "right": 980,
+                "bottom": 198.84375,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 198.84375,
+                "width": 560,
+                "height": 24,
+                "top": 198.84375,
+                "right": 980,
+                "bottom": 222.84375,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-embed-block cm-callout",
+              "rect": {
+                "x": 420,
+                "y": 222.84375,
+                "width": 560,
+                "height": 44.796875,
+                "top": 222.84375,
+                "right": 980,
+                "bottom": 267.640625,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 267.640625,
+                "width": 560,
+                "height": 24,
+                "top": 267.640625,
+                "right": 980,
+                "bottom": 291.640625,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line cm-active",
+              "rect": {
+                "x": 420,
+                "y": 291.640625,
+                "width": 560,
+                "height": 24,
+                "top": 291.640625,
+                "right": 980,
+                "bottom": 315.640625,
+                "left": 420
+              }
+            }
+          ]
+        },
+        "before": {
+          "source": "> [!note]- 第一块\n> 第一块正文\n\n> [!note]- 第二块\n> 第二块正文\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 23,
+                "head": 23
+              }
+            ],
+            "main": 0
+          },
+          "focus": true
+        },
+        "after": "> [!note]- 第一块\n> 第一块正文\n定位\n> [!note]- 第二块\n> 第二块正文\n\n尾部正文",
+        "pass": true
+      },
+      {
+        "scenario": "folded-callouts",
+        "fraction": 0.5,
+        "geometry": {
+          "expected": 23,
+          "c": {
+            "x": 420,
+            "y": 200.84375,
+            "width": 0,
+            "height": 20,
+            "top": 200.84375,
+            "right": 420,
+            "bottom": 220.84375,
+            "left": 420
+          },
+          "x": 700,
+          "y": 210.84375,
+          "dom": [
+            {
+              "cls": "cm-embed-block cm-callout",
+              "rect": {
+                "x": 420,
+                "y": 154.046875,
+                "width": 560,
+                "height": 44.796875,
+                "top": 154.046875,
+                "right": 980,
+                "bottom": 198.84375,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 198.84375,
+                "width": 560,
+                "height": 24,
+                "top": 198.84375,
+                "right": 980,
+                "bottom": 222.84375,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-embed-block cm-callout",
+              "rect": {
+                "x": 420,
+                "y": 222.84375,
+                "width": 560,
+                "height": 44.796875,
+                "top": 222.84375,
+                "right": 980,
+                "bottom": 267.640625,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 267.640625,
+                "width": 560,
+                "height": 24,
+                "top": 267.640625,
+                "right": 980,
+                "bottom": 291.640625,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line cm-active",
+              "rect": {
+                "x": 420,
+                "y": 291.640625,
+                "width": 560,
+                "height": 24,
+                "top": 291.640625,
+                "right": 980,
+                "bottom": 315.640625,
+                "left": 420
+              }
+            }
+          ]
+        },
+        "before": {
+          "source": "> [!note]- 第一块\n> 第一块正文\n\n> [!note]- 第二块\n> 第二块正文\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 23,
+                "head": 23
+              }
+            ],
+            "main": 0
+          },
+          "focus": true
+        },
+        "after": "> [!note]- 第一块\n> 第一块正文\n定位\n> [!note]- 第二块\n> 第二块正文\n\n尾部正文",
+        "pass": true
+      },
+      {
+        "scenario": "folded-callouts",
+        "fraction": 0.95,
+        "geometry": {
+          "expected": 23,
+          "c": {
+            "x": 420,
+            "y": 200.84375,
+            "width": 0,
+            "height": 20,
+            "top": 200.84375,
+            "right": 420,
+            "bottom": 220.84375,
+            "left": 420
+          },
+          "x": 952,
+          "y": 210.84375,
+          "dom": [
+            {
+              "cls": "cm-embed-block cm-callout",
+              "rect": {
+                "x": 420,
+                "y": 154.046875,
+                "width": 560,
+                "height": 44.796875,
+                "top": 154.046875,
+                "right": 980,
+                "bottom": 198.84375,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 198.84375,
+                "width": 560,
+                "height": 24,
+                "top": 198.84375,
+                "right": 980,
+                "bottom": 222.84375,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-embed-block cm-callout",
+              "rect": {
+                "x": 420,
+                "y": 222.84375,
+                "width": 560,
+                "height": 44.796875,
+                "top": 222.84375,
+                "right": 980,
+                "bottom": 267.640625,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 267.640625,
+                "width": 560,
+                "height": 24,
+                "top": 267.640625,
+                "right": 980,
+                "bottom": 291.640625,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line cm-active",
+              "rect": {
+                "x": 420,
+                "y": 291.640625,
+                "width": 560,
+                "height": 24,
+                "top": 291.640625,
+                "right": 980,
+                "bottom": 315.640625,
+                "left": 420
+              }
+            }
+          ]
+        },
+        "before": {
+          "source": "> [!note]- 第一块\n> 第一块正文\n\n> [!note]- 第二块\n> 第二块正文\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 23,
+                "head": 23
+              }
+            ],
+            "main": 0
+          },
+          "focus": true
+        },
+        "after": "> [!note]- 第一块\n> 第一块正文\n定位\n> [!note]- 第二块\n> 第二块正文\n\n尾部正文",
+        "pass": true
+      },
+      {
+        "scenario": "nested-quotes",
+        "fraction": 0.02,
+        "geometry": {
+          "expected": 10,
+          "c": {
+            "x": 420,
+            "y": 180.046875,
+            "width": 0,
+            "height": 20,
+            "top": 180.046875,
+            "right": 420,
+            "bottom": 200.046875,
+            "left": 420
+          },
+          "x": 431.2,
+          "y": 190.046875,
+          "dom": [
+            {
+              "cls": "cm-line HyperMD-quote HyperMD-quote-2",
+              "rect": {
+                "x": 420,
+                "y": 154.046875,
+                "width": 560,
+                "height": 24,
+                "top": 154.046875,
+                "right": 980,
+                "bottom": 178.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 178.046875,
+                "width": 560,
+                "height": 24,
+                "top": 178.046875,
+                "right": 980,
+                "bottom": 202.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line HyperMD-quote HyperMD-quote-2",
+              "rect": {
+                "x": 420,
+                "y": 202.046875,
+                "width": 560,
+                "height": 24,
+                "top": 202.046875,
+                "right": 980,
+                "bottom": 226.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 226.046875,
+                "width": 560,
+                "height": 24,
+                "top": 226.046875,
+                "right": 980,
+                "bottom": 250.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line cm-active",
+              "rect": {
+                "x": 420,
+                "y": 250.046875,
+                "width": 560,
+                "height": 24,
+                "top": 250.046875,
+                "right": 980,
+                "bottom": 274.046875,
+                "left": 420
+              }
+            }
+          ]
+        },
+        "before": {
+          "source": "> > 嵌套引用一\n\n> > 嵌套引用二\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 10,
+                "head": 10
+              }
+            ],
+            "main": 0
+          },
+          "focus": true
+        },
+        "after": "> > 嵌套引用一\n定位\n> > 嵌套引用二\n\n尾部正文",
+        "pass": true
+      },
+      {
+        "scenario": "nested-quotes",
+        "fraction": 0.5,
+        "geometry": {
+          "expected": 10,
+          "c": {
+            "x": 420,
+            "y": 180.046875,
+            "width": 0,
+            "height": 20,
+            "top": 180.046875,
+            "right": 420,
+            "bottom": 200.046875,
+            "left": 420
+          },
+          "x": 700,
+          "y": 190.046875,
+          "dom": [
+            {
+              "cls": "cm-line HyperMD-quote HyperMD-quote-2",
+              "rect": {
+                "x": 420,
+                "y": 154.046875,
+                "width": 560,
+                "height": 24,
+                "top": 154.046875,
+                "right": 980,
+                "bottom": 178.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 178.046875,
+                "width": 560,
+                "height": 24,
+                "top": 178.046875,
+                "right": 980,
+                "bottom": 202.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line HyperMD-quote HyperMD-quote-2",
+              "rect": {
+                "x": 420,
+                "y": 202.046875,
+                "width": 560,
+                "height": 24,
+                "top": 202.046875,
+                "right": 980,
+                "bottom": 226.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 226.046875,
+                "width": 560,
+                "height": 24,
+                "top": 226.046875,
+                "right": 980,
+                "bottom": 250.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line cm-active",
+              "rect": {
+                "x": 420,
+                "y": 250.046875,
+                "width": 560,
+                "height": 24,
+                "top": 250.046875,
+                "right": 980,
+                "bottom": 274.046875,
+                "left": 420
+              }
+            }
+          ]
+        },
+        "before": {
+          "source": "> > 嵌套引用一\n\n> > 嵌套引用二\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 10,
+                "head": 10
+              }
+            ],
+            "main": 0
+          },
+          "focus": true
+        },
+        "after": "> > 嵌套引用一\n定位\n> > 嵌套引用二\n\n尾部正文",
+        "pass": true
+      },
+      {
+        "scenario": "nested-quotes",
+        "fraction": 0.95,
+        "geometry": {
+          "expected": 10,
+          "c": {
+            "x": 420,
+            "y": 180.046875,
+            "width": 0,
+            "height": 20,
+            "top": 180.046875,
+            "right": 420,
+            "bottom": 200.046875,
+            "left": 420
+          },
+          "x": 952,
+          "y": 190.046875,
+          "dom": [
+            {
+              "cls": "cm-line HyperMD-quote HyperMD-quote-2",
+              "rect": {
+                "x": 420,
+                "y": 154.046875,
+                "width": 560,
+                "height": 24,
+                "top": 154.046875,
+                "right": 980,
+                "bottom": 178.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 178.046875,
+                "width": 560,
+                "height": 24,
+                "top": 178.046875,
+                "right": 980,
+                "bottom": 202.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line HyperMD-quote HyperMD-quote-2",
+              "rect": {
+                "x": 420,
+                "y": 202.046875,
+                "width": 560,
+                "height": 24,
+                "top": 202.046875,
+                "right": 980,
+                "bottom": 226.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line",
+              "rect": {
+                "x": 420,
+                "y": 226.046875,
+                "width": 560,
+                "height": 24,
+                "top": 226.046875,
+                "right": 980,
+                "bottom": 250.046875,
+                "left": 420
+              }
+            },
+            {
+              "cls": "cm-line cm-active",
+              "rect": {
+                "x": 420,
+                "y": 250.046875,
+                "width": 560,
+                "height": 24,
+                "top": 250.046875,
+                "right": 980,
+                "bottom": 274.046875,
+                "left": 420
+              }
+            }
+          ]
+        },
+        "before": {
+          "source": "> > 嵌套引用一\n\n> > 嵌套引用二\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 10,
+                "head": 10
+              }
+            ],
+            "main": 0
+          },
+          "focus": true
+        },
+        "after": "> > 嵌套引用一\n定位\n> > 嵌套引用二\n\n尾部正文",
+        "pass": true
+      }
+    ],
+    "myblog-callout-geometry": {
+      "main": [
+        {
+          "tag": "DIV",
+          "cls": "cm-callout-widget callout callout-note",
+          "html": "<div class=\"callout-title\"><select aria-label=\"Callout 类型\"><option value=\"note\">笔记</option><option value=\"info\">信息</option><option value=\"tip\">提示</option><option value=\"success\">成功</option><option value=\"question\">疑问</option><option value=\"warning\">警告</option><option value=\"failure\">失败</option><opti",
+          "box": {
+            "x": 104,
+            "y": 34,
+            "width": 992,
+            "height": 78,
+            "top": 34,
+            "right": 1096,
+            "bottom": 112,
+            "left": 104
+          },
+          "pos": 0
+        },
+        {
+          "tag": "DIV",
+          "cls": "cm-line",
+          "html": "<br>",
+          "box": {
+            "x": 104,
+            "y": 120,
+            "width": 992,
+            "height": 28.796875,
+            "top": 120,
+            "right": 1096,
+            "bottom": 148.796875,
+            "left": 104
+          },
+          "pos": 22
+        },
+        {
+          "tag": "DIV",
+          "cls": "cm-callout-widget callout callout-note",
+          "html": "<div class=\"callout-title\"><select aria-label=\"Callout 类型\"><option value=\"note\">笔记</option><option value=\"info\">信息</option><option value=\"tip\">提示</option><option value=\"success\">成功</option><option value=\"question\">疑问</option><option value=\"warning\">警告</option><option value=\"failure\">失败</option><opti",
+          "box": {
+            "x": 104,
+            "y": 156.796875,
+            "width": 992,
+            "height": 78,
+            "top": 156.796875,
+            "right": 1096,
+            "bottom": 234.796875,
+            "left": 104
+          },
+          "pos": 23
+        },
+        {
+          "tag": "DIV",
+          "cls": "cm-line",
+          "html": "<br>",
+          "box": {
+            "x": 104,
+            "y": 242.796875,
+            "width": 992,
+            "height": 28.796875,
+            "top": 242.796875,
+            "right": 1096,
+            "bottom": 271.59375,
+            "left": 104
+          },
+          "pos": 45
+        },
+        {
+          "tag": "DIV",
+          "cls": "cm-line",
+          "html": "尾部正文",
+          "box": {
+            "x": 104,
+            "y": 271.59375,
+            "width": 992,
+            "height": 28.796875,
+            "top": 271.59375,
+            "right": 1096,
+            "bottom": 300.390625,
+            "left": 104
+          },
+          "pos": 46
+        }
+      ],
+      "positions": [
+        {
+          "p": 20,
+          "coords": {
+            "left": 1096,
+            "right": 1096,
+            "top": 34,
+            "bottom": 112
+          },
+          "block": {
+            "from": 0,
+            "length": 21,
+            "top": 0,
+            "height": 78,
+            "_content": {
+              "startSide": -300000001,
+              "endSide": 200000001,
+              "widget": {
+                "block": {
+                  "from": 0,
+                  "to": 21,
+                  "raw": "> [!note] 第一块\n> 第一块正文",
+                  "heading": "> [!note] 第一块",
+                  "type": "note",
+                  "fold": "",
+                  "title": "第一块",
+                  "body": "第一块正文"
+                },
+                "options": {
+                  "foldHeadings": false
+                }
+              },
+              "spec": {
+                "block": true,
+                "widget": {
+                  "block": {
+                    "from": 0,
+                    "to": 21,
+                    "raw": "> [!note] 第一块\n> 第一块正文",
+                    "heading": "> [!note] 第一块",
+                    "type": "note",
+                    "fold": "",
+                    "title": "第一块",
+                    "body": "第一块正文"
+                  },
+                  "options": {
+                    "foldHeadings": false
+                  }
+                }
+              },
+              "block": true,
+              "isReplace": true,
+              "mapMode": 2
+            }
+          }
+        },
+        {
+          "p": 21,
+          "coords": {
+            "left": 1096,
+            "right": 1096,
+            "top": 34,
+            "bottom": 112
+          },
+          "block": {
+            "from": 0,
+            "length": 21,
+            "top": 0,
+            "height": 78,
+            "_content": {
+              "startSide": -300000001,
+              "endSide": 200000001,
+              "widget": {
+                "block": {
+                  "from": 0,
+                  "to": 21,
+                  "raw": "> [!note] 第一块\n> 第一块正文",
+                  "heading": "> [!note] 第一块",
+                  "type": "note",
+                  "fold": "",
+                  "title": "第一块",
+                  "body": "第一块正文"
+                },
+                "options": {
+                  "foldHeadings": false
+                }
+              },
+              "spec": {
+                "block": true,
+                "widget": {
+                  "block": {
+                    "from": 0,
+                    "to": 21,
+                    "raw": "> [!note] 第一块\n> 第一块正文",
+                    "heading": "> [!note] 第一块",
+                    "type": "note",
+                    "fold": "",
+                    "title": "第一块",
+                    "body": "第一块正文"
+                  },
+                  "options": {
+                    "foldHeadings": false
+                  }
+                }
+              },
+              "block": true,
+              "isReplace": true,
+              "mapMode": 2
+            }
+          }
+        },
+        {
+          "p": 22,
+          "coords": {
+            "x": 104,
+            "y": 124,
+            "width": 0,
+            "height": 20,
+            "top": 124,
+            "right": 104,
+            "bottom": 144,
+            "left": 104
+          },
+          "block": {
+            "from": 22,
+            "length": 0,
+            "top": 78,
+            "height": 28.796875,
+            "_content": 0
+          }
+        },
+        {
+          "p": 23,
+          "coords": {
+            "left": 104,
+            "right": 104,
+            "top": 156.796875,
+            "bottom": 234.796875
+          },
+          "block": {
+            "from": 23,
+            "length": 21,
+            "top": 106.796875,
+            "height": 78,
+            "_content": {
+              "startSide": -300000001,
+              "endSide": 200000001,
+              "widget": {
+                "block": {
+                  "from": 23,
+                  "to": 44,
+                  "raw": "> [!note] 第二块\n> 第二块正文",
+                  "heading": "> [!note] 第二块",
+                  "type": "note",
+                  "fold": "",
+                  "title": "第二块",
+                  "body": "第二块正文"
+                },
+                "options": {
+                  "foldHeadings": false
+                }
+              },
+              "spec": {
+                "block": true,
+                "widget": {
+                  "block": {
+                    "from": 23,
+                    "to": 44,
+                    "raw": "> [!note] 第二块\n> 第二块正文",
+                    "heading": "> [!note] 第二块",
+                    "type": "note",
+                    "fold": "",
+                    "title": "第二块",
+                    "body": "第二块正文"
+                  },
+                  "options": {
+                    "foldHeadings": false
+                  }
+                }
+              },
+              "block": true,
+              "isReplace": true,
+              "mapMode": 2
+            }
+          }
+        },
+        {
+          "p": 24,
+          "coords": {
+            "left": 1096,
+            "right": 1096,
+            "top": 156.796875,
+            "bottom": 234.796875
+          },
+          "block": {
+            "from": 23,
+            "length": 21,
+            "top": 106.796875,
+            "height": 78,
+            "_content": {
+              "startSide": -300000001,
+              "endSide": 200000001,
+              "widget": {
+                "block": {
+                  "from": 23,
+                  "to": 44,
+                  "raw": "> [!note] 第二块\n> 第二块正文",
+                  "heading": "> [!note] 第二块",
+                  "type": "note",
+                  "fold": "",
+                  "title": "第二块",
+                  "body": "第二块正文"
+                },
+                "options": {
+                  "foldHeadings": false
+                }
+              },
+              "spec": {
+                "block": true,
+                "widget": {
+                  "block": {
+                    "from": 23,
+                    "to": 44,
+                    "raw": "> [!note] 第二块\n> 第二块正文",
+                    "heading": "> [!note] 第二块",
+                    "type": "note",
+                    "fold": "",
+                    "title": "第二块",
+                    "body": "第二块正文"
+                  },
+                  "options": {
+                    "foldHeadings": false
+                  }
+                }
+              },
+              "block": true,
+              "isReplace": true,
+              "mapMode": 2
+            }
+          }
+        }
+      ],
+      "snapshot": {
+        "source": "> [!note] 第一块\n> 第一块正文\n\n> [!note] 第二块\n> 第二块正文\n\n尾部正文",
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 0,
+              "head": 0
+            }
+          ],
+          "main": 0
+        },
+        "undoDepth": 0,
+        "focus": false,
+        "active": ""
+      }
+    },
+    "myblog-margin-intervention": [
+      {
+        "margin": null,
+        "geo": {
+          "x": 600,
+          "y": 134,
+          "c": {
+            "x": 104,
+            "y": 124,
+            "width": 0,
+            "height": 20,
+            "top": 124,
+            "right": 104,
+            "bottom": 144,
+            "left": 104
+          },
+          "hit": 23,
+          "block": {
+            "from": 22,
+            "length": 0,
+            "top": 78,
+            "height": 28.796875,
+            "_content": 0
+          }
+        },
+        "snapshot": {
+          "source": "> [!note] 第一块\n> 第一块正文\n\n> [!note] 第二块\n> 第二块正文\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 23,
+                "head": 23
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 0,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "margin": "0px",
+        "geo": {
+          "x": 600,
+          "y": 118,
+          "c": {
+            "x": 104,
+            "y": 108,
+            "width": 0,
+            "height": 20,
+            "top": 108,
+            "right": 104,
+            "bottom": 128,
+            "left": 104
+          },
+          "hit": 22,
+          "block": {
+            "from": 22,
+            "length": 0,
+            "top": 78,
+            "height": 28.796875,
+            "_content": 0
+          }
+        },
+        "snapshot": {
+          "source": "> [!note] 第一块\n> 第一块正文\n\n> [!note] 第二块\n> 第二块正文\n\n尾部正文",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 22,
+                "head": 22
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 0,
+          "focus": true,
+          "active": "cm-content cm-lineWrapping"
+        }
+      }
+    ],
+    "myblog-columns-margin-intervention": [
+      {
+        "zeroMargin": false,
+        "expected": 39,
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 40,
+              "head": 40
+            }
+          ],
+          "main": 0
+        }
+      },
+      {
+        "zeroMargin": true,
+        "expected": 39,
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 39,
+              "head": 39
+            }
+          ],
+          "main": 0
+        }
+      }
+    ],
+    "myblog-extension-gap-clicks": [
+      {
+        "id": "columns",
+        "geometry": {
+          "expected": 43,
+          "x": 600,
+          "y": 242,
+          "hit": 44
+        },
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 44,
+              "head": 44
+            }
+          ],
+          "main": 0
+        },
+        "sourceUnchanged": true
+      },
+      {
+        "id": "tabs",
+        "geometry": {
+          "expected": 30,
+          "x": 600,
+          "y": 241.578125,
+          "hit": 30
+        },
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 30,
+              "head": 30
+            }
+          ],
+          "main": 0
+        },
+        "sourceUnchanged": true
+      },
+      {
+        "id": "collapse",
+        "geometry": {
+          "expected": 30,
+          "x": 600,
+          "y": 333.765625,
+          "hit": 31
+        },
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 31,
+              "head": 31
+            }
+          ],
+          "main": 0
+        },
+        "sourceUnchanged": true
+      }
+    ],
+    "myblog-host-clicks": {
+      "backend": "mocked API; actual production React consumers with reduced utility CSS",
+      "cases": [
+        {
+          "kind": "calendar",
+          "geo": {
+            "x": 600,
+            "y": 491.796875,
+            "hit": 23
+          },
+          "snapshot": {
+            "source": "> [!note] 第一块\n> 第一块正文\n\n> [!note] 第二块\n> 第二块正文\n\n尾部正文",
+            "selection": {
+              "ranges": [
+                {
+                  "anchor": 23,
+                  "head": 23
+                }
+              ],
+              "main": 0
+            },
+            "undoDepth": 0,
+            "focus": true
+          }
+        },
+        {
+          "kind": "home",
+          "geo": {
+            "x": 614,
+            "y": 223.4375,
+            "hit": 23
+          },
+          "snapshot": {
+            "source": "> [!note] 第一块\n> 第一块正文\n\n> [!note] 第二块\n> 第二块正文\n\n尾部正文",
+            "selection": {
+              "ranges": [
+                {
+                  "anchor": 23,
+                  "head": 23
+                }
+              ],
+              "main": 0
+            },
+            "undoDepth": 0,
+            "focus": true
+          }
+        },
+        {
+          "kind": "doc",
+          "geo": {
+            "x": 614,
+            "y": 223.4375,
+            "hit": 23
+          },
+          "snapshot": {
+            "source": "> [!note] 第一块\n> 第一块正文\n\n> [!note] 第二块\n> 第二块正文\n\n尾部正文",
+            "selection": {
+              "ranges": [
+                {
+                  "anchor": 23,
+                  "head": 23
+                }
+              ],
+              "main": 0
+            },
+            "undoDepth": 0,
+            "focus": true
+          }
+        },
+        {
+          "kind": "quick",
+          "geo": {
+            "x": 600,
+            "y": 398.3125,
+            "hit": 23
+          },
+          "snapshot": {
+            "source": "> [!note] 第一块\n> 第一块正文\n\n> [!note] 第二块\n> 第二块正文\n\n尾部正文",
+            "selection": {
+              "ranges": [
+                {
+                  "anchor": 23,
+                  "head": 23
+                }
+              ],
+              "main": 0
+            },
+            "undoDepth": 0,
+            "focus": true
+          }
+        }
+      ]
+    },
+    "myblog-source-history": {
+      "edit": {
+        "source": "**加粗**\n\n尾部正文历史",
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 14,
+              "head": 14
+            }
+          ],
+          "main": 0
+        },
+        "undoDepth": 1,
+        "focus": true,
+        "active": "cm-content cm-lineWrapping"
+      },
+      "source": {
+        "source": "**加粗**\n\n尾部正文历史",
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 14,
+              "head": 14
+            }
+          ],
+          "main": 0
+        },
+        "undoDepth": 1,
+        "focus": true,
+        "active": "cm-content cm-lineWrapping"
+      },
+      "live": {
+        "source": "**加粗**\n\n尾部正文历史",
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 14,
+              "head": 14
+            }
+          ],
+          "main": 0
+        },
+        "undoDepth": 1,
+        "focus": true,
+        "active": "cm-content cm-lineWrapping"
+      },
+      "undo": {
+        "source": "**加粗**\n\n尾部正文",
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 12,
+              "head": 12
+            }
+          ],
+          "main": 0
+        },
+        "undoDepth": 0,
+        "focus": true,
+        "active": "cm-content cm-lineWrapping"
+      }
+    },
+    "myblog-article-mode-history": {
+      "backend": "mocked save/read APIs; actual DocInlineEditor component",
+      "before": {
+        "source": "尾部正文历史",
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 6,
+              "head": 6
+            }
+          ],
+          "main": 0
+        },
+        "undoDepth": 1,
+        "focus": true
+      },
+      "source": {
+        "source": "尾部正文历史",
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 6,
+              "head": 6
+            }
+          ],
+          "main": 0
+        },
+        "undoDepth": 1,
+        "focus": false
+      },
+      "saved": "尾部正文历史",
+      "returned": {
+        "source": "尾部正文历史",
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 0,
+              "head": 0
+            }
+          ],
+          "main": 0
+        },
+        "undoDepth": 0,
+        "focus": false
+      }
+    },
+    "obsidian-modes-history": {
+      "live": {
+        "mode": "source",
+        "sourceMode": false,
+        "source": "**加粗**\n\n尾部正文历史",
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 14,
+              "head": 14
+            }
+          ],
+          "main": 0
+        },
+        "sameEditor": true,
+        "connected": true
+      },
+      "source": {
+        "mode": "source",
+        "sourceMode": true,
+        "source": "**加粗**\n\n尾部正文历史",
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 14,
+              "head": 14
+            }
+          ],
+          "main": 0
+        },
+        "sameEditor": true,
+        "connected": true
+      },
+      "reading": {
+        "mode": "preview",
+        "sourceMode": false,
+        "source": "**加粗**\n\n尾部正文历史",
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 14,
+              "head": 14
+            }
+          ],
+          "main": 0
+        },
+        "sameEditor": true,
+        "connected": true
+      },
+      "readingText": "probe\n\n加粗\n\n尾部正文历史",
+      "returned": {
+        "mode": "source",
+        "sourceMode": false,
+        "source": "**加粗**\n\n尾部正文历史",
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 14,
+              "head": 14
+            }
+          ],
+          "main": 0
+        },
+        "sameEditor": true,
+        "connected": true
+      },
+      "undone": {
+        "mode": "source",
+        "sourceMode": false,
+        "source": "**加粗**\n\n尾部正文",
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 12,
+              "head": 12
+            }
+          ],
+          "main": 0
+        },
+        "sameEditor": true,
+        "connected": true
+      }
+    },
+    "myblog-inline-formatting": [
+      {
+        "id": "nested-emphasis",
+        "source": "**粗体内的 *斜体* 内容**\n\n尾部",
+        "display": "*粗体内的 斜体 内容*\n\n\n尾部",
+        "html": "<div class=\"cm-line\">*<img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span contenteditable=\"false\"></span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span class=\"cm-lp-em\">粗体内的 </span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span contenteditable=\"false\"></span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\">斜体<img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span contenteditable=\"false\"></span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span class=\"cm-lp-em\"> 内容</span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span contenteditable=\"false\"></span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\">*</div><div class=\"cm-line\"><br></div><div class=\"cm-line\">尾部</div>"
+      },
+      {
+        "id": "escaped-emphasis",
+        "source": "\\*不是斜体\\*\n\n尾部",
+        "display": "\\不是斜体\\\n\n\n尾部",
+        "html": "<div class=\"cm-line\">\\<img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span contenteditable=\"false\"></span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span class=\"cm-lp-em\">不是斜体\\</span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span contenteditable=\"false\"></span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"></div><div class=\"cm-line\"><br></div><div class=\"cm-line\">尾部</div>"
+      },
+      {
+        "id": "inline-code-backticks",
+        "source": "``a ` b``\n\n尾部",
+        "display": "`a  b``\n\n\n尾部",
+        "html": "<div class=\"cm-line\">`<img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span contenteditable=\"false\"></span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span class=\"cm-lp-inline-code\">a </span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span contenteditable=\"false\"></span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"> b``</div><div class=\"cm-line\"><br></div><div class=\"cm-line\">尾部</div>"
+      }
+    ],
+    "obsidian-inline-formatting": [
+      {
+        "id": "nested-emphasis",
+        "source": "**粗体内的 *斜体* 内容**\n\n尾部",
+        "display": "粗体内的 斜体 内容\n\n\n尾部",
+        "html": "<div class=\"cm-line\" dir=\"ltr\"><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span contenteditable=\"false\"></span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span class=\"cm-strong\">粗体内的 </span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span contenteditable=\"false\"></span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span class=\"cm-em cm-strong\">斜体</span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span contenteditable=\"false\"></span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span class=\"cm-strong\"> 内容</span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span contenteditable=\"false\"></span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"></div><div class=\"cm-line\" dir=\"ltr\"><br></div><div class=\"cm-line cm-active\" dir=\"ltr\">尾部</div>"
+      },
+      {
+        "id": "escaped-emphasis",
+        "source": "\\*不是斜体\\*\n\n尾部",
+        "display": "*不是斜体*\n\n\n尾部",
+        "html": "<div class=\"cm-line\" dir=\"ltr\"><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span contenteditable=\"false\"></span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span class=\"cm-escape cm-hmd-escape-char\">*</span>不是斜体<img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span contenteditable=\"false\"></span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span class=\"cm-escape cm-hmd-escape-char\">*</span></div><div class=\"cm-line\" dir=\"ltr\"><br></div><div class=\"cm-line cm-active\" dir=\"ltr\">尾部</div>"
+      },
+      {
+        "id": "inline-code-backticks",
+        "source": "``a ` b``\n\n尾部",
+        "display": "a ` b\n\n\n尾部",
+        "html": "<div class=\"cm-line\" dir=\"ltr\"><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span contenteditable=\"false\"></span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span class=\"cm-inline-code\" spellcheck=\"false\">a ` b</span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"><span contenteditable=\"false\"></span><img class=\"cm-widgetBuffer\" aria-hidden=\"true\"></div><div class=\"cm-line\" dir=\"ltr\"><br></div><div class=\"cm-line cm-active\" dir=\"ltr\">尾部</div>"
+      }
+    ],
+    "myblog-table-synthetic-ime": {
+      "initial": "| A | B |\n| --- | --- |\n| x | y |\n\n尾部",
+      "during": {
+        "snapshot": {
+          "source": "| A | B |\n| --- | --- |\n| x | y |\n\n尾部",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 0,
+                "head": 0
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 0,
+          "focus": false,
+          "active": ""
+        },
+        "cell": "x中文",
+        "connected": true
+      },
+      "paused": {
+        "snapshot": {
+          "source": "| A | B |\n| :--- | :--- |\n| x中文 | y |\n\n尾部",
+          "selection": {
+            "ranges": [
+              {
+                "anchor": 0,
+                "head": 0
+              }
+            ],
+            "main": 0
+          },
+          "undoDepth": 1,
+          "focus": false,
+          "active": ""
+        },
+        "cell": "x中文",
+        "connected": true
+      },
+      "committed": {
+        "source": "| A | B |\n| :--- | :--- |\n| x中文中文 | y |\n\n尾部",
+        "selection": {
+          "ranges": [
+            {
+              "anchor": 0,
+              "head": 0
+            }
+          ],
+          "main": 0
+        },
+        "undoDepth": 2,
+        "focus": false,
+        "active": ""
+      },
+      "errors": []
+    },
+    "obsidian-table-synthetic-ime": {
+      "during": {
+        "source": "| A   | B   |\n| --- | --- |\n| x中文 | y   |\n\n尾部",
+        "active": "cm-content cm-lineWrapping",
+        "text": "x中文"
+      },
+      "paused": {
+        "source": "| A   | B   |\n| --- | --- |\n| x中文 | y   |\n\n尾部",
+        "active": "cm-content cm-lineWrapping",
+        "text": "x中文"
+      },
+      "committed": {
+        "source": "| A   | B   |\n| --- | --- |\n| x中文 | y   |\n\n尾部",
+        "active": "cm-content cm-lineWrapping",
+        "text": "x中文"
+      }
+    },
+    "myblog-extension-baseline": [
+      {
+        "id": "tabs",
+        "source": ":::tabs\n\n@tab 第一页\n\n第一页内容\n\n@tab 第二页\n\n第二页内容\n\n:::\n\n尾部",
+        "visibleWidgets": [
+          {
+            "class": "cm-visual-directive cm-visual-tabs",
+            "margin": "16px 0px",
+            "controls": [
+              "查看源码",
+              "第一页",
+              "第二页",
+              "设为默认",
+              "左移",
+              "右移",
+              "添加选项卡",
+              "删除空项"
+            ]
+          }
+        ],
+        "innerInteractive": false,
+        "iframes": 0
+      },
+      {
+        "id": "collapse",
+        "source": ":::collapse\n- :+ 问题\n\n  答案\n:::\n\n尾部",
+        "widgets": [
+          {
+            "class": "cm-visual-directive cm-visual-collapse",
+            "controls": [
+              "查看源码",
+              "添加面板",
+              "上移",
+              "下移",
+              "删除空项"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "columns",
+        "source": ":::columns\n::column\n左侧内容\n::column\n右侧内容\n:::\n\n尾部",
+        "visibleWidgets": [
+          {
+            "class": "cm-columns-widget",
+            "margin": "12px 0px",
+            "controls": [
+              "添加一栏",
+              "展开为普通正文",
+              "查看源码",
+              "左移",
+              "右移",
+              "左移",
+              "右移"
+            ]
+          }
+        ],
+        "innerInteractive": false,
+        "iframes": 0
+      },
+      {
+        "id": "interactive",
+        "source": "```html-interactive title=\"演示\"\n<button>按钮</button>\n```\n\n尾部",
+        "visibleWidgets": [],
+        "innerInteractive": true,
+        "iframes": 0
+      }
+    ]
+  },
+  "original_artifact": {
+    "asar": "C:\\Users\\a3129\\AppData\\Roaming\\obsidian\\obsidian-1.13.7.asar",
+    "sha256": "a52a7daf1e2460bae03de80f2816604bd16a56cd374fbe5ce8d1a9ef5604059d",
+    "members": [
+      {
+        "member": "app.js",
+        "asar_offset": 730578,
+        "bytes": 3876459,
+        "sha256": "8efbf581e259cabef4f9c9a34814cfe3c02863757377e56b3603933c50e89898",
+        "extracted_path": "C:\\Users\\a3129\\Documents\\My-Blog\\.diag\\obsidian-study\\selected-app\\app.js"
+      },
+      {
+        "member": "package.json",
+        "asar_offset": 23616401,
+        "bytes": 260,
+        "sha256": "28c1c5f28a72f2fc72bccc74359bfde29d4654374cc4fffd33361ffa1998b644",
+        "extracted_path": "C:\\Users\\a3129\\Documents\\My-Blog\\.diag\\obsidian-study\\selected-app\\package.json"
+      },
+      {
+        "member": "main.js",
+        "asar_offset": 23416671,
+        "bytes": 199730,
+        "sha256": "25b0705d32d9b9686b89c613b3268f2512024e64e8cfe220facd7e3e47a6c85f",
+        "extracted_path": "C:\\Users\\a3129\\Documents\\My-Blog\\.diag\\obsidian-study\\main.js"
+      }
+    ]
+  },
+  "method_provenance": {
+    "original_member": "app.js",
+    "original_member_sha256": "8efbf581e259cabef4f9c9a34814cfe3c02863757377e56b3603933c50e89898",
+    "note": "Exact inert AST assignment slices; disconnected free bindings are unknown; this is partial artifact coverage.",
+    "methods": [
+      {
+        "name": "set",
+        "utf16_start": 1965351,
+        "utf16_end": 1965410,
+        "member_utf8_byte_start": 1970011,
+        "bytes": 59,
+        "sha256": "b31a6b965484dcc07f5fcadbb1837b011fa6d58028e2a3e3b296a84cdb8a33aa",
+        "selected_start_utf16": 0
+      },
+      {
+        "name": "queueRender",
+        "utf16_start": 1968389,
+        "utf16_end": 1968628,
+        "member_utf8_byte_start": 1973049,
+        "bytes": 239,
+        "sha256": "9973de5a9777f3ee63a92b80f3f228ad56340ff0d8b7cecd64331d48d14ee366",
+        "selected_start_utf16": 61
+      },
+      {
+        "name": "parseAsync",
+        "utf16_start": 1968629,
+        "utf16_end": 1969327,
+        "member_utf8_byte_start": 1973289,
+        "bytes": 698,
+        "sha256": "78e33ccf4a38c4c8078d889c65075473f200c6b34da47ea37a8604f50e40fdb8",
+        "selected_start_utf16": 302
+      },
+      {
+        "name": "parseFinish",
+        "utf16_start": 1969408,
+        "utf16_end": 1970574,
+        "member_utf8_byte_start": 1974068,
+        "bytes": 1166,
+        "sha256": "d912cfa51975546cef9459f1ca57a5a88f2ea1e89fe342fed1c05c741994db45",
+        "selected_start_utf16": 1002
+      },
+      {
+        "name": "onResize",
+        "utf16_start": 1975565,
+        "utf16_end": 1975921,
+        "member_utf8_byte_start": 1980225,
+        "bytes": 356,
+        "sha256": "9d0c42d7982f116d98684b2fba069fe95479075db082f7b3650c8beb8468bb76",
+        "selected_start_utf16": 2170
+      },
+      {
+        "name": "getDynamicExtensions",
+        "utf16_start": 2542790,
+        "utf16_end": 2543917,
+        "member_utf8_byte_start": 2547519,
+        "bytes": 1127,
+        "sha256": "d82fdff038b2a5d5e71b0ec9c4528d016f1335e83d997410afe1f91e2ce05b10",
+        "selected_start_utf16": 2528
+      },
+      {
+        "name": "updateOptions",
+        "utf16_start": 2544132,
+        "utf16_end": 2544297,
+        "member_utf8_byte_start": 2548861,
+        "bytes": 165,
+        "sha256": "bcf1c3265eb2e840bd4d9d3cefc2fc4db917e392779fa4c6c9aef9fbacd564bf",
+        "selected_start_utf16": 3657
+      },
+      {
+        "name": "toggleSource",
+        "utf16_start": 2547642,
+        "utf16_end": 2547770,
+        "member_utf8_byte_start": 2552371,
+        "bytes": 128,
+        "sha256": "7f9f12ad5e8354611793bb1ef4571690ecab98a2462f388adc239a2b072b6f4f",
+        "selected_start_utf16": 3824
+      },
+      {
+        "name": "onEditorClick",
+        "utf16_start": 2547808,
+        "utf16_end": 2549315,
+        "member_utf8_byte_start": 2552537,
+        "bytes": 1507,
+        "sha256": "51a6276cb26ca33478b53138deac825ae2574b6633438a802ba95f23294f8bcf",
+        "selected_start_utf16": 3954
+      },
+      {
+        "name": "getMode",
+        "utf16_start": 3034493,
+        "utf16_end": 3034553,
+        "member_utf8_byte_start": 3039288,
+        "bytes": 60,
+        "sha256": "64055f1c2e8fe8dbb54d5019c38bf3eb3e6ae8a41779d527da1d490df7989234",
+        "selected_start_utf16": 5463
+      },
+      {
+        "name": "setMode",
+        "utf16_start": 3035172,
+        "utf16_end": 3035848,
+        "member_utf8_byte_start": 3039967,
+        "bytes": 676,
+        "sha256": "1f13f0e1b1ffa2c6f27a772dc718b92310d30805f818ae338f471861f7f8e629",
+        "selected_start_utf16": 5525
+      }
+    ]
+  }
+}

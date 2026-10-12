@@ -12,6 +12,7 @@ import type { CalloutType } from '../../lib/markdown-format-catalog';
 import { scanVisualDirectives } from '../../lib/markdown-visual-directives';
 import { columnBlocks, registerEditorOwner, rootEditor, setColumnTarget } from './cm-columns-state';
 import { headingFolding } from './cm-heading-folding';
+import { blockWidgetContent, blockWidgetLayout, blockWidgetResized, destroyBlockWidget, wrapBlockWidget } from './cm-block-widget';
 
 interface Options {
   foldHeadings?: boolean;
@@ -132,25 +133,25 @@ class CalloutController {
 }
 
 class CalloutWidget extends WidgetType {
-  constructor(readonly block: MarkdownCallout, readonly options: Options) { super(); }
-  eq(other: CalloutWidget): boolean { return this.block.from === other.block.from && this.block.raw === other.block.raw; }
+  constructor(readonly block: MarkdownCallout, readonly options: Options, readonly layout: number) { super(); }
+  eq(other: CalloutWidget): boolean { return this.layout === other.layout && this.block.from === other.block.from && this.block.raw === other.block.raw; }
   toDOM(parent: EditorView): HTMLElement {
-    const dom = document.createElement('div'); controllers.set(dom, new CalloutController(parent, dom, this.block, this.options)); return dom;
+    const dom = document.createElement('div'); controllers.set(dom, new CalloutController(parent, dom, this.block, this.options)); return wrapBlockWidget(dom, parent, '8px');
   }
-  updateDOM(dom: HTMLElement): boolean { return controllers.get(dom)?.sync(this.block) ?? false; }
+  updateDOM(dom: HTMLElement): boolean { return controllers.get(blockWidgetContent(dom))?.sync(this.block) ?? false; }
   ignoreEvent(): boolean { return true; }
-  destroy(dom: HTMLElement): void { controllers.get(dom)?.destroy(); controllers.delete(dom); }
+  destroy(dom: HTMLElement): void { const card = blockWidgetContent(dom); destroyBlockWidget(dom); controllers.get(card)?.destroy(); controllers.delete(card); }
 }
 
 export function calloutsExtension(options: Options): Extension {
   const build = (state: EditorState): DecorationSet => {
     const owners = [...columnBlocks(state.doc), ...scanVisualDirectives(state.doc.toString())];
     return Decoration.set(scanMarkdownCallouts(state.doc.toString()).filter(block => !owners.some(owner => owner.from <= block.from && owner.to >= block.to))
-      .map(block => Decoration.replace({ block: true, widget: new CalloutWidget(block, options) }).range(block.from, block.to)));
+      .map(block => Decoration.replace({ block: true, widget: new CalloutWidget(block, options, state.field(blockWidgetLayout)) }).range(block.from, block.to)));
   };
-  const field = StateField.define<DecorationSet>({ create: build, update: (value, tr) => tr.docChanged ? build(tr.state) : value, provide: field => EditorView.decorations.from(field) });
-  return [field, EditorView.baseTheme({
-    '.cm-callout-widget': { margin: '8px 0', minWidth: '0' },
+  const field = StateField.define<DecorationSet>({ create: build, update: (value, tr) => tr.docChanged || tr.effects.some(effect => effect.is(blockWidgetResized)) ? build(tr.state) : value, provide: field => EditorView.decorations.from(field) });
+  return [blockWidgetLayout, field, EditorView.baseTheme({
+    '.cm-callout-widget': { margin: '0', minWidth: '0' },
     '.cm-callout-widget > .callout-title': { display: 'flex', gap: '8px', alignItems: 'center', minWidth: '0' },
     '.cm-callout-widget > .callout-title input': { flex: '1', minWidth: '0', border: 'none', background: 'transparent', color: 'inherit', font: 'inherit', outline: 'none' },
     '.cm-callout-widget > .callout-title select, .cm-callout-widget > .callout-title button': { border: 'none', background: 'transparent', color: 'inherit', font: 'inherit', fontSize: '.8em', cursor: 'pointer' },

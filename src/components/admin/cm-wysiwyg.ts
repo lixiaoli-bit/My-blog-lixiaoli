@@ -30,6 +30,7 @@ import { columnBlocks } from './cm-columns-state';
 import { scanVisualDirectives } from '../../lib/markdown-visual-directives';
 import { InteractiveCodeWidget } from './cm-interactive-html';
 import { scanMarkdownCallouts } from '../../lib/markdown-callouts';
+import { appendMarkdownInline, markdownInlineSpans } from './cm-markdown-inline';
 // katex 必须静态 import（勿改回 import('katex')）：
 // 1) vite build 会把 katex 并入本模块所属 chunk，随 MarkdownEditor 的动态 import 按需加载，
 //    写作台（非 wysiwyg 模式）不加载本模块 → 零 katex 负担；
@@ -40,9 +41,9 @@ import katex from 'katex';
 /** 隐藏范围（replace 为空，不占视觉空间，仍可编辑） */
 const hide = Decoration.replace({});
 
-/** 行内标记正则（与 cm-live-preview 保持一致语义：粗/斜/码/删/链接/图片） */
+/** 图片、链接与项目扩展；标准强调/转义/代码由 Markdown 解析器识别。 */
 const inlineRe =
-  /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)|(\*\*)([^*\n]+)\*\*|(\*)([^*\n]+)\*|(`)([^`\n]+)`|(~~)([^~\n]+)~~|\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)|<u>([^<\n]+)<\/u>|:spoiler\[([^\]\n]+)\]|:note\[([^\]\n]+)\]/g;
+  /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)|\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)|<u>([^<\n]+)<\/u>|:spoiler\[([^\]\n]+)\]|:note\[([^\]\n]+)\]/g;
 
 /* ================= Widget ================= */
 
@@ -557,9 +558,12 @@ function computeBase(doc: typeof EditorState.prototype.doc): { items: DecoItem[]
 
   /* ---- Pass 4: 行内标记（所有未 blocked 行，含标题/引用/列表行内的公式/粗斜体） ---- */
   const inlineOccupied = new Map<number, Array<[number, number]>>();
+  const standardInline = markdownInlineSpans(doc);
   lines.forEach((line, idx) => {
     if (blocked.has(idx)) return;
     const occupied: Array<[number, number]> = [...(rowOccupied.get(idx) ?? [])];
+    const spans = standardInline.get(idx) ?? [];
+    const literalRanges: Array<[number, number]> = spans.filter(span => span.literal).map(span => [span.from, span.to]);
 
     // 4a: 粗体 / 斜体 / 行内代码 / 删除线 / 链接 / 图片（code span 在此被记录，保护后续数学）
     inlineRe.lastIndex = 0;
@@ -568,7 +572,7 @@ function computeBase(doc: typeof EditorState.prototype.doc): { items: DecoItem[]
       const base = line.from + m.index;
       const fullLen = m[0].length;
       const fullTo = base + fullLen;
-      if (overlapsAny(occupied, base, fullTo)) continue;
+      if (overlapsAny(occupied, base, fullTo) || overlapsAny(literalRanges, base, fullTo)) continue;
 
       // 图片 ![alt](url)
       if (m[1] !== undefined && m[2] !== undefined) {
@@ -577,43 +581,28 @@ function computeBase(doc: typeof EditorState.prototype.doc): { items: DecoItem[]
         occupied.push([base, fullTo]);
         continue;
       }
-      if (m[3] !== undefined) {
-        items.push({ from: base, to: base + 2, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-        items.push({ from: base + 2, to: base + fullLen - 2, deco: Decoration.mark({ class: 'cm-lp-strong' }) });
-        items.push({ from: base + fullLen - 2, to: fullTo, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-      } else if (m[5] !== undefined) {
-        items.push({ from: base, to: base + 1, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-        items.push({ from: base + 1, to: base + fullLen - 1, deco: Decoration.mark({ class: 'cm-lp-em' }) });
-        items.push({ from: base + fullLen - 1, to: fullTo, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-      } else if (m[7] !== undefined) {
-        items.push({ from: base, to: base + 1, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-        items.push({ from: base + 1, to: base + fullLen - 1, deco: Decoration.mark({ class: 'cm-lp-inline-code' }) });
-        items.push({ from: base + fullLen - 1, to: fullTo, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-      } else if (m[9] !== undefined) {
-        items.push({ from: base, to: base + 2, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-        items.push({ from: base + 2, to: base + fullLen - 2, deco: Decoration.mark({ class: 'cm-lp-del' }) });
-        items.push({ from: base + fullLen - 2, to: fullTo, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-      } else if (m[11] !== undefined && m[12] !== undefined) {
-        const textLen = m[11]!.length;
+      if (m[3] !== undefined && m[4] !== undefined) {
+        const textLen = m[3]!.length;
         items.push({ from: base, to: base + 1, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
         items.push({
           from: base + 1,
           to: base + 1 + textLen,
-          deco: Decoration.mark({ class: 'cm-lp-link', attributes: { 'data-href': m[12]! } }),
+          deco: Decoration.mark({ class: 'cm-lp-link', attributes: { 'data-href': m[4]! } }),
         });
         items.push({ from: base + 1 + textLen, to: fullTo, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-      } else if (m[13] !== undefined) {
+      } else if (m[5] !== undefined) {
         items.push({ from: base, to: base + 3, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
         items.push({ from: base + 3, to: fullTo - 4, deco: Decoration.mark({ class: 'cm-wy-underline' }) });
         items.push({ from: fullTo - 4, to: fullTo, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-      } else if (m[14] !== undefined || m[15] !== undefined) {
-        const prefixLength = m[14] !== undefined ? 9 : 6;
+      } else if (m[6] !== undefined || m[7] !== undefined) {
+        const prefixLength = m[6] !== undefined ? 9 : 6;
         items.push({ from: base, to: base + prefixLength, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
-        items.push({ from: base + prefixLength, to: fullTo - 1, deco: Decoration.mark({ class: m[14] !== undefined ? 'cm-wy-spoiler' : 'cm-wy-inline-note' }), reveal: m[14] !== undefined, revealFrom: base, revealTo: fullTo });
+        items.push({ from: base + prefixLength, to: fullTo - 1, deco: Decoration.mark({ class: m[6] !== undefined ? 'cm-wy-spoiler' : 'cm-wy-inline-note' }), reveal: m[6] !== undefined, revealFrom: base, revealTo: fullTo });
         items.push({ from: fullTo - 1, to: fullTo, deco: hide, reveal: true, revealFrom: base, revealTo: fullTo });
       }
       occupied.push([base, fullTo]);
     }
+    appendMarkdownInline(spans, line, occupied, items);
 
     // 4b: 行内 $…$ 数学（跳过 code span 与行首装饰区间）
     scanInlineMath(line.text, line.from, occupied, (from, to, inner) => {
