@@ -121,13 +121,15 @@ pnpm dev
 
 ### 使用 Windows 便携版
 
-当前项目版本为 `1.1.3`，本次便携构建以日期和目录区分：`release/portable-stability-20261012/白衣卿相.exe`。先保存并完全退出旧版，再启动新包；必须保留整个便携目录及 `resources`。桌面数据与配置仍由用户自己的配置目录管理，验证脚本使用独立配置和测试数据。
+当前项目版本为 `1.1.3`，本次便携构建以日期和目录区分：`release/portable-input-20261012/白衣卿相.exe`。先保存并完全退出旧版，再启动新包；必须保留整个便携目录及 `resources`。桌面数据与配置仍由用户自己的配置目录管理，验证脚本使用独立配置和测试数据。
 
 在文档页登录后，将左侧文章旁的 ↗ 手柄拖到资源管理器的文件夹空白处或桌面，即可导出 Markdown。初次准备较慢时会提示稍后重新拖动；点击手柄可直接下载。原生拖出只能在 Windows 桌面客户端使用。
 
 三模式菜单可用鼠标悬停或右方向键展开，Esc 关闭。源码模式支持自动保存、`Ctrl/Cmd-S` 和“保存源码”按钮，手动保存后保留源码模式。正文读取失败时可重试或返回预览；保存冲突时保留本地暂存稿，需处理冲突后保存，避免覆盖其他窗口的新内容。
 
 已保存的暂存稿会在进入编辑时与服务器正文核对，避免旧版本号造成单窗口误报冲突；长文中的收起/展开只更新对应块的高度，保持滚动位置。详见[编辑稳定性验收](docs/editor-stability-20261012.md)。
+
+引用、折叠、选项卡和分栏编辑块使用稳定身份与实测高度，避免块内输入时串用相邻正文、重置光标或大幅自动滚动；输入只修改对应源码，保留原有引用前缀、分栏留白与折叠缩进。正文末尾换行、嵌套撤销重做及屏幕底部光标跟随均有回归覆盖。详见[块内输入修复记录](docs/nested-input-stability-20261012.md)。
 
 ## ⚙️ 环境变量
 
@@ -174,9 +176,10 @@ pnpm dev
 | `pnpm test` | vitest 单元测试 |
 | `pnpm exec vitest run --maxWorkers=4` | 在 Windows 上限制并发的全量回归 |
 | `pnpm exec node scripts/check-editor-kernel.mjs` | 编辑内核及宿主的浏览器交互回归 |
-| `pnpm run build:portable --target portable-stability-20261012` | 构建到独立 Windows 便携目录，保留运行中的客户端 |
-| `pnpm exec node scripts/verify-editor-portable.mjs portable-stability-20261012` | 隔离 Electron 验证编辑器与持久化 |
-| `pnpm exec node scripts/verify-article-interactions.mjs portable-stability-20261012` | 隔离 Electron 验证文章交互、管理弹窗及 Markdown 导出桥接 |
+| `pnpm exec node scripts/check-nested-input.mjs` | 块内换行、输入、选区、组合输入、撤销重做及滚动回归 |
+| `pnpm run build:portable --target portable-input-20261012` | 构建到独立 Windows 便携目录，保留运行中的客户端 |
+| `pnpm exec node scripts/verify-editor-portable.mjs portable-input-20261012` | 隔离 Electron 验证编辑器与持久化 |
+| `pnpm exec node scripts/verify-article-interactions.mjs portable-input-20261012 --nested-input` | 隔离 Electron 验证块内输入、保存重开、文章交互、管理弹窗及 Markdown 导出桥接 |
 | `pnpm db:push:dev` | SQLite schema 推送 |
 | `pnpm db:generate:pg` / `pnpm db:migrate:pg` | PostgreSQL 迁移生成 / 应用 |
 | `pnpm db:seed` | 灌入演示数据（幂等） |
