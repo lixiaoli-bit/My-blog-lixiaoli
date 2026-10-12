@@ -11,7 +11,7 @@ _一个功能完整的综合型个人博客 —— 技术教程 · 学习笔记 
 ![Drizzle ORM](https://img.shields.io/badge/Drizzle_ORM-SQLite%20%2F%20PostgreSQL-C5F74F?logo=drizzle&logoColor=black)
 ![CodeMirror](https://img.shields.io/badge/CodeMirror-6-D3070C?logo=codemirror&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white)
-![pnpm](https://img.shields.io/badge/pnpm-10-F69220?logo=pnpm&logoColor=white)
+![pnpm](https://img.shields.io/badge/pnpm-11-F69220?logo=pnpm&logoColor=white)
 
 </div>
 
@@ -34,19 +34,26 @@ _一个功能完整的综合型个人博客 —— 技术教程 · 学习笔记 
 ## ✨ 功能特性
 
 ### 📝 博客
-- 首页卡片流：手动封面优先（无则取正文首图）、类型章、服务端分页与分页栏跳转、服务端全站搜索 / 类型筛选
+- 首页横向文章列表：左侧展示真实封面，无封面或图片加载失败时正文扩展填满；服务端分页、全站搜索与类型筛选
+- 管理员右键文章卡片可直接进入编辑模式或确认删除；阅读页、编辑页同步展示文章封面
 - 文章页 `/blog/[slug]` 按类型动态切换三种布局：**Tech**（带目录）/ **Note**（简洁）/ **Photo**（杂志宽幅）
 - 标签聚合 `/tags/[tag]` · RSS 订阅 · Twikoo 评论 · View Transitions · 亮暗主题
 
 ### 📖 数学讲义（`/doc`）
 - 分类 → 分册 → 文章的树形结构，KaTeX 数学公式渲染，块级公式源码/渲染态切换
 - 编辑态目录实时刷新、点击跳转、视口反向高亮联动
+- 在“本册目录”拖入 Markdown 可导入；Windows 桌面端将文章右侧 ↗ 手柄拖到桌面或资源管理器可导出 `.md`，原有拖动排序仍可使用
+- 浏览器点击 ↗ 手柄或右键选择“导出 Markdown”下载；正在编辑的正文须成功保存后才导出，避免拿到旧版本
 
 ### ✍️ 写作台（`/edit/*`，仅管理员）
 - CodeMirror 6 **Obsidian 式单栏所见即所得**：Markdown 标记隐藏，代码块/图片/公式实时渲染
-- 500ms 防抖自动保存、`Ctrl/Cmd-S` 手动保存
+- 就地编辑在停止输入 1.5 秒后自动保存，`Ctrl/Cmd-S` 手动保存；独立写作台使用其自身保存流程
 - 图片支持本地上传 / 剪贴板粘贴 / 拖拽 / 网络 URL，封面图手动指定
 - 左栏文章管理（新建/移动/删除）、右栏实时目录
+- 文档与文章正文提供 **预览 / 编辑 / 源码** 三模式；右键悬停“切换视图”打开子菜单，也可使用标题旁按钮
+- 源码与可视编辑共用正文；可视模块加载失败时仍可使用源码模式。读取失败保留阅读正文并提供重试和返回预览；保存失败保留暂存稿，版本冲突不覆盖其他窗口内容
+- 块间鼠标定位、嵌套格式、表格中文组合输入与撤销已有独立回归；`html-interactive` 支持手动运行自包含 HTML 演示
+- AI 随机创作封面，先预览再应用，不发送文章正文作为生图素材；文章关联思维导图支持 Markdown 大纲导入、导出及原文定位
 
 ### 🖼️ 影集（`/gallery`）
 - 瀑布流照片墙 + 时间线（按展示日期倒序）、滚动分页、灯箱查看
@@ -91,7 +98,7 @@ _一个功能完整的综合型个人博客 —— 技术教程 · 学习笔记 
 
 ## 🖥️ 快速开始
 
-**环境要求**：Node.js ≥ 20.19 · pnpm ≥ 10
+**环境要求**：Node.js ≥ 22.12 · pnpm 11（项目声明 `pnpm@11.20.0`）
 
 ```bash
 # 1. 安装依赖
@@ -111,6 +118,14 @@ pnpm dev
 ```
 
 打开 http://localhost:4321 ，访问 `/login` 登录写作台（开发密码见 `.env` 的 `ADMIN_PASSWORD`，默认 `dev-admin-password`）。
+
+### 使用 Windows 便携版
+
+当前项目版本为 `1.1.3`，本次便携构建以日期和目录区分：`release/portable-workspace-20261012/白衣卿相.exe`。先保存并完全退出旧版，再启动新包；必须保留整个便携目录及 `resources`。桌面数据与配置仍由用户自己的配置目录管理，验证脚本使用独立配置和测试数据。
+
+在文档页登录后，将左侧文章旁的 ↗ 手柄拖到资源管理器的文件夹空白处或桌面，即可导出 Markdown。初次准备较慢时会提示稍后重新拖动；点击手柄可直接下载。原生拖出只能在 Windows 桌面客户端使用。
+
+三模式菜单可用鼠标悬停或右方向键展开，Esc 关闭。源码模式支持自动保存、`Ctrl/Cmd-S` 和“保存源码”按钮，手动保存后保留源码模式。正文读取失败时可重试或返回预览；保存冲突时保留本地暂存稿，需处理冲突后保存，避免覆盖其他窗口的新内容。
 
 ## ⚙️ 环境变量
 
@@ -155,6 +170,11 @@ pnpm dev
 | `pnpm preview` | 本地预览生产构建 |
 | `pnpm check` | `astro check` 类型检查（TS strict） |
 | `pnpm test` | vitest 单元测试 |
+| `pnpm exec vitest run --maxWorkers=4` | 在 Windows 上限制并发的全量回归 |
+| `pnpm exec node scripts/check-editor-kernel.mjs` | 编辑内核及宿主的浏览器交互回归 |
+| `pnpm run build:portable --target portable-workspace-20261012` | 构建到独立 Windows 便携目录，保留运行中的客户端 |
+| `pnpm exec node scripts/verify-editor-portable.mjs portable-workspace-20261012` | 隔离 Electron 验证编辑器与持久化 |
+| `pnpm exec node scripts/verify-article-interactions.mjs portable-workspace-20261012` | 隔离 Electron 验证文章交互、管理弹窗及 Markdown 导出桥接 |
 | `pnpm db:push:dev` | SQLite schema 推送 |
 | `pnpm db:generate:pg` / `pnpm db:migrate:pg` | PostgreSQL 迁移生成 / 应用 |
 | `pnpm db:seed` | 灌入演示数据（幂等） |

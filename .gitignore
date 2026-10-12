@@ -35,6 +35,7 @@ scripts/_diag-*.png
 .vercel
 .env*
 .diag/
+undefined/temp/
 
 # 桌面端打包产物
 release/
