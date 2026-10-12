@@ -3,10 +3,15 @@ import { StateEffect, StateField } from '@codemirror/state';
 import { rootEditor } from './cm-columns-state';
 
 const observers = new WeakMap<HTMLElement, ResizeObserver>();
-export const blockWidgetResized = StateEffect.define<void>();
-export const blockWidgetLayout = StateField.define<number>({
-  create: () => 0,
-  update: (value, tr) => tr.effects.some(effect => effect.is(blockWidgetResized)) ? value + 1 : value,
+export const blockWidgetResized = StateEffect.define<number>({ map: (position, changes) => changes.mapPos(position) });
+export const blockWidgetLayout = StateField.define<ReadonlyMap<number, number>>({
+  create: () => new Map(),
+  update: (value, tr) => {
+    if (!tr.docChanged && !tr.effects.some(effect => effect.is(blockWidgetResized))) return value;
+    const next = new Map([...value].map(([position, revision]) => [tr.changes.mapPos(position), revision]));
+    for (const effect of tr.effects) if (effect.is(blockWidgetResized)) next.set(effect.value, (next.get(effect.value) ?? 0) + 1);
+    return next;
+  },
 });
 
 /** CM measures a block's border box, excluding vertical margins. Keep card spacing inside that box. */
@@ -23,11 +28,12 @@ export function wrapBlockWidget(card: HTMLElement, parent: EditorView, spacing: 
     const nextHeight = entries[0]?.borderBoxSize[0]?.blockSize ?? wrap.getBoundingClientRect().height;
     const changed = height !== undefined && height !== nextHeight;
     height = nextHeight;
-    // A fixed-height content DOM can stay the same size when a card folds. In that
-    // case requestMeasure alone does not invalidate CM's block height map. A new
-    // decoration identity does, while updateDOM preserves the existing child editor.
+    // Only invalidate this card. Changing every widget's identity discards the
+    // heights of offscreen cards and makes a long document jump when one folds.
     const invalidate = (view: EditorView) => {
-      if (changed && view.state.field(blockWidgetLayout, false) !== undefined) view.dispatch({ effects: blockWidgetResized.of() });
+      if (changed && view.state.field(blockWidgetLayout, false) !== undefined) {
+        view.dispatch({ effects: blockWidgetResized.of(view.posAtDOM(wrap, 0)) });
+      }
       view.requestMeasure();
     };
     invalidate(parent);

@@ -348,7 +348,7 @@ export function columnsExtension(options: Options): Extension {
     const source = state.doc.toString();
     const owners = [...scanMarkdownCallouts(source), ...scanVisualDirectives(source)];
     return Decoration.set(columnBlocks(state.doc).filter(block => !owners.some(owner => owner.from <= block.from && owner.to >= block.to)).map(block => Decoration.replace({
-      block: true, widget: new ColumnsWidget(block, state.sliceDoc(block.from, block.to), options, state.field(blockWidgetLayout)),
+      block: true, widget: new ColumnsWidget(block, state.sliceDoc(block.from, block.to), options, state.field(blockWidgetLayout).get(block.from) ?? 0),
     }).range(block.from, block.to)));
   };
   const field = StateField.define<DecorationSet>({

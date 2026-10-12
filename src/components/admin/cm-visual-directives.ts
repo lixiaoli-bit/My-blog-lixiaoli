@@ -318,7 +318,7 @@ export function visualDirectivesExtension(options: Options = {}): Extension {
     const columns = [...columnBlocks(state.doc), ...scanMarkdownCallouts(state.doc.toString())];
     return Decoration.set(scanVisualDirectives(state.doc.toString()).filter((block) =>
       !columns.some((column) => block.from >= column.from && block.to <= column.to)).map((block) =>
-      Decoration.replace({ block: true, widget: new VisualWidget(block, options, state.field(blockWidgetLayout)) }).range(block.from, block.to)));
+      Decoration.replace({ block: true, widget: new VisualWidget(block, options, state.field(blockWidgetLayout).get(block.from) ?? 0) }).range(block.from, block.to)));
   };
   const field = StateField.define<DecorationSet>({
     create: build,

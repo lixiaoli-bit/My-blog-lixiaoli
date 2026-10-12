@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { flushPendingArticleSaves, pendingArticleField, rememberArticleSave, saveArticleSnapshot } from '../src/lib/pending-article-saves';
+import { createHash } from 'node:crypto';
+import { articleContentVersion, flushPendingArticleSaves, pendingArticleField, registerArticleBaseline, rememberArticleSave, saveArticleSnapshot, setArticleContentVersion } from '../src/lib/pending-article-saves';
+import { prefetchDocNode, takePrefetchedDocNode } from '../src/lib/doc-viewport';
+
+const hash = (source: string) => createHash('sha256').update(source).digest('hex');
 
 beforeEach(() => {
   const data = new Map<string, string>();
@@ -8,6 +12,60 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('silent article navigation saves', () => {
+  it('clears an already-persisted recovery draft before a single window starts new edits', async () => {
+    const url = '/api/articles/restored-matching';
+    setArticleContentVersion(url, hash('old version'));
+    rememberArticleSave(url, { content: 'already saved' });
+    await registerArticleBaseline(url, 'already saved');
+    expect(pendingArticleField(url, 'content')).toBeNull();
+    expect(articleContentVersion(url)).toBe(hash('already saved'));
+    const request = vi.fn(async (_url, options) => {
+      const body = JSON.parse(options.body);
+      return body.expectedContentHash === hash('already saved')
+        ? new Response(JSON.stringify({ contentHash: hash(body.content) }))
+        : new Response('{}', { status: 409 });
+    });
+    vi.stubGlobal('fetch', request);
+    await expect(saveArticleSnapshot(url, { content: 'new single-window edit' })).resolves.toBeDefined();
+  });
+
+  it('does not replace a freshly acknowledged local version with an older opening response', async () => {
+    const url = '/api/articles/opening-race';
+    setArticleContentVersion(url, hash('initial'));
+    let finish!: (response: Response) => void;
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(resolve => { finish = resolve; })));
+    const saving = saveArticleSnapshot(url, { content: 'saved during opening' });
+    const opening = registerArticleBaseline(url, 'initial');
+    finish(new Response(JSON.stringify({ contentHash: hash('saved during opening') })));
+    const [, loadedVersion] = await Promise.all([saving, opening]);
+    expect(articleContentVersion(url)).toBe(hash('saved during opening'));
+    expect(loadedVersion).toBe(hash('initial')); // The host can detect and reload the stale read.
+  });
+
+  it('invalidates an old document prefetch after a background pending save succeeds', async () => {
+    const id = 'background-prefetch', url = '/api/doc/nodes/' + id;
+    vi.stubGlobal('fetch', vi.fn(async (_url, options) => options?.method === 'PATCH'
+      ? new Response(JSON.stringify({ contentHash: hash('saved draft') }))
+      : new Response(JSON.stringify({ node: { content: 'old prefetched source' } }))));
+    prefetchDocNode(id);
+    await vi.waitFor(() => expect(vi.mocked(fetch)).toHaveBeenCalledOnce());
+    await new Promise(resolve => setTimeout(resolve, 0));
+    setArticleContentVersion(url, hash('old prefetched source'));
+    await saveArticleSnapshot(url, { content: 'saved draft' });
+    expect(takePrefetchedDocNode(id)).toBeUndefined();
+  });
+
+  it('retains the original version of a divergent recovery draft instead of overwriting the server', async () => {
+    const url = '/api/articles/real-recovery-conflict';
+    setArticleContentVersion(url, hash('shared base'));
+    rememberArticleSave(url, { content: 'unsent draft' });
+    await registerArticleBaseline(url, 'different server edit');
+    expect(articleContentVersion(url)).toBe(hash('shared base'));
+    expect(pendingArticleField(url, 'content')).toBe('unsent draft');
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 409 })));
+    await expect(saveArticleSnapshot(url, { content: 'unsent draft' })).rejects.toThrow('当前改动已暂存');
+    expect(pendingArticleField(url, 'content')).toBe('unsent draft');
+  });
   it('shows the HTTP status and server reason while retaining a rejected snapshot', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: '正文过长，未保存' }), { status: 413 })));
     await expect(saveArticleSnapshot('/api/articles/rejected', { content: 'retained' })).rejects.toThrow('HTTP 413');

@@ -1,21 +1,34 @@
 /** Retain unsent editor snapshots across navigation; send each field in order. */
+import { invalidatePrefetchedDocNode } from './doc-viewport';
 const PREFIX = 'byqx:pending-article:';
 const active = new Map<string, Promise<unknown>>();
 const volatile = new Map<string, string>();
 const baselines = new Map<string,string>();
 export function setArticleContentVersion(url: string, hash: string): void { baselines.set(url,hash); }
 export function articleContentVersion(url: string): string | undefined { return baselines.get(url); }
-export async function registerArticleBaseline(url: string, source: string): Promise<void> {
-  const pending=read(keyFor(url,{content:''}));
-  if(pending?.body.expectedContentHash) { baselines.set(url,pending.body.expectedContentHash); return; }
+/** Return the version of the supplied read, which may differ from a concurrent save acknowledgement. */
+export async function registerArticleBaseline(url: string, source: string): Promise<string> {
+  const previousVersion = baselines.get(url);
+  let version: string;
   if(crypto.subtle) {
     const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(source));
-    baselines.set(url,Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join(''));
+    version = Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
   } else {
     const response=await fetch(url,{cache:'no-store'}),data=await response.json();
     if(!response.ok||typeof data.contentHash!=='string')throw new Error('无法读取正文版本');
-    baselines.set(url,data.contentHash);
+    version = data.contentHash;
   }
+  // A recovered draft may already be on the server (e.g. its acknowledgement
+  // was lost). Reusing that draft's older hash makes the next local edit conflict.
+  const pending = read(keyFor(url, { content: '' }));
+  if (pending?.body.content === source) discardArticleField(url, 'content');
+  else if (pending?.body.expectedContentHash) {
+    baselines.set(url, pending.body.expectedContentHash);
+    return version;
+  }
+  // Hashing/loading must not rewind an acknowledgement from this same window.
+  if (baselines.get(url) === previousVersion) baselines.set(url, version);
+  return version;
 }
 interface PendingSave { url: string; body: Record<string, string>; }
 function keyFor(url: string, body: Record<string, string>): string {
@@ -66,12 +79,14 @@ async function send(key: string, keepalive = false): Promise<unknown> {
       }
       if (!response.ok) {
         const failure = await response.json().catch(() => ({})) as { error?: unknown };
-        throw new Error(response.status === 409 ? '正文已在其他窗口修改，当前改动已暂存，请处理冲突后再保存' : response.status === 401 || response.status === 403 ? '登录已过期，重新登录后会继续自动保存' : `自动保存失败（HTTP ${response.status}）：${typeof failure.error === 'string' ? failure.error : '服务器暂时不可用'}；修改已暂存，请重试`);
+        throw new Error(response.status === 409 ? '服务器正文版本已变化，当前改动已暂存，请处理冲突后再保存' : response.status === 401 || response.status === 403 ? '登录已过期，重新登录后会继续自动保存' : `自动保存失败（HTTP ${response.status}）：${typeof failure.error === 'string' ? failure.error : '服务器暂时不可用'}；修改已暂存，请重试`);
       }
       result = await response.json().catch(() => ({}));
       const hash=(result as {contentHash?:string}).contentHash;
       if(hash&&'content' in item.body) {
         baselines.set(item.url,hash);
+        const nodeId = item.url.match(/^\/api\/doc\/nodes\/([^/]+)$/)?.[1];
+        if (nodeId) invalidatePrefetchedDocNode(nodeId);
         if(storedValue(key)!==stored) {
           const latest=read(key);
           if(latest) { const value=JSON.stringify({...latest,body:{...latest.body,expectedContentHash:hash}});volatile.set(key,value);try{localStorage.setItem(key,value);}catch{/* memory fallback */} }

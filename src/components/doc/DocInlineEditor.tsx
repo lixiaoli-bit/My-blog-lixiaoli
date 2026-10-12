@@ -44,7 +44,7 @@ import { renderTocTreeHtml } from '@/lib/toc-tree';
 import { activateInlineArticleTitle, type InlineArticleTitleSession } from '@/lib/inline-article-title';
 import { createLatestSaveQueue } from '@/lib/latest-save-queue';
 import { registerAiEditor } from '@/lib/ai-editor-bridge';
-import { registerArticleBaseline, setArticleContentVersion } from '@/lib/pending-article-saves';
+import { articleContentVersion, registerArticleBaseline, setArticleContentVersion } from '@/lib/pending-article-saves';
 import { discardArticleField, flushPendingArticleSaves, pendingArticleField, rememberArticleSave, saveArticleSnapshot } from '@/lib/pending-article-saves';
 import type { TocItem } from '@/lib/mdx-plugins';
 import { indexOfNthHeading, pickNearestViewAnchor } from '@/lib/view-anchor';
@@ -789,17 +789,26 @@ export default function DocInlineEditor(): ReactElement {
     try {
       // 预取命中则零等待；用掉即删 —— 缓存只当加速，不当数据源（正文可能在别处已改）
       let text = isHomeArticle() ? undefined : takePrefetchedDocNode(id);
-      if (text === undefined) {
-        const res = await fetch(articleApiUrl(id), { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]) });
+      const readSource = async (): Promise<string> => {
+        const res = await fetch(articleApiUrl(id), { cache: 'no-store', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]) });
         const d = (await res.json().catch(() => ({}))) as { node?: { content?: string }; article?: { content?: string }; error?: string };
         const content = isHomeArticle() ? d.article?.content : d.node?.content;
         if (!res.ok || typeof content !== 'string') throw new Error(d.error ?? '读取正文失败');
-        text = content;
-      }
+        return content;
+      };
+      if (text === undefined) text = await readSource();
       if (!isHomeArticle()) invalidatePrefetchedDocNode(id);
-      await registerArticleBaseline(articleApiUrl(id), text);
+      const loadedVersion = await registerArticleBaseline(articleApiUrl(id), text);
       if (controller.signal.aborted || openingRef.current !== opening || !hostRef.current?.isConnected || readActiveNodeId() !== id) return;
-      const pendingContent = pendingArticleField(articleApiUrl(id), 'content');
+      let pendingContent = pendingArticleField(articleApiUrl(id), 'content');
+      if (pendingContent === null && articleContentVersion(articleApiUrl(id)) !== loadedVersion) {
+        // Our background draft save finished during opening. Load its current
+        // text as well as its version; never pair stale text with the newer hash.
+        text = await readSource();
+        await registerArticleBaseline(articleApiUrl(id), text);
+        pendingContent = pendingArticleField(articleApiUrl(id), 'content');
+        if (controller.signal.aborted || openingRef.current !== opening || !hostRef.current?.isConnected || readActiveNodeId() !== id) return;
+      }
       if (pendingContent !== null) text = pendingContent;
       saveQueueRef.current = null;
       contentRef.current = text;

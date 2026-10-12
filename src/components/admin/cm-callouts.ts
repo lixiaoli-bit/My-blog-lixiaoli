@@ -147,7 +147,7 @@ export function calloutsExtension(options: Options): Extension {
   const build = (state: EditorState): DecorationSet => {
     const owners = [...columnBlocks(state.doc), ...scanVisualDirectives(state.doc.toString())];
     return Decoration.set(scanMarkdownCallouts(state.doc.toString()).filter(block => !owners.some(owner => owner.from <= block.from && owner.to >= block.to))
-      .map(block => Decoration.replace({ block: true, widget: new CalloutWidget(block, options, state.field(blockWidgetLayout)) }).range(block.from, block.to)));
+      .map(block => Decoration.replace({ block: true, widget: new CalloutWidget(block, options, state.field(blockWidgetLayout).get(block.from) ?? 0) }).range(block.from, block.to)));
   };
   const field = StateField.define<DecorationSet>({ create: build, update: (value, tr) => tr.docChanged || tr.effects.some(effect => effect.is(blockWidgetResized)) ? build(tr.state) : value, provide: field => EditorView.decorations.from(field) });
   return [blockWidgetLayout, field, EditorView.baseTheme({

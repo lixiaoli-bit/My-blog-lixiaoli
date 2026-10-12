@@ -12,6 +12,7 @@ const root = path.resolve(import.meta.dirname, '..'), name = process.argv[2];
 if (!name || !/^[\w-]+$/.test(name)) throw Error('Pass a portable directory inside release');
 const baseline = process.argv.includes('--baseline');
 const nativeTest = process.argv.includes('--native-drag');
+const visibleScroll = process.argv.includes('--visible-scroll');
 const portable = path.join(root, 'release', name), run = fs.mkdtempSync(path.join(os.tmpdir(), 'byqx-article-review-'));
 const appData = path.join(run, 'appdata'), profile = path.join(run, 'profile'), dbFile = path.join(run, 'fixture.db');
 fs.mkdirSync(path.join(appData, 'byqx-blog-desktop'), { recursive: true }); fs.mkdirSync(profile);
@@ -19,7 +20,9 @@ fs.copyFileSync(path.join(portable, 'resources/desktop-assets/template.db'), dbF
 let study = { title: '高数长文隔离验收', content: Array.from({ length: 100 }, (_, i) => `## ${i + 1} 多元微分\n\n> [!note]+ 例题\n> 求偏导 $f_x$\n\n:::collapse\n- 解析\n\n  $$f(x,y)=x^2+y^2$$\n:::\n`).join('\n') };
 if (process.env.ARTICLE_FIXTURE_DB) {
   const source = new Database(process.env.ARTICLE_FIXTURE_DB, { readonly: true, fileMustExist: true });
-  study = source.prepare('SELECT title,content FROM doc_nodes WHERE title=?').get('没咋了-高数强化-第5章-多元微分学（5.1至5.5·合并）'); source.close();
+  study = process.env.ARTICLE_FIXTURE_ID
+    ? source.prepare('SELECT title,content FROM doc_nodes WHERE id=?').get(process.env.ARTICLE_FIXTURE_ID)
+    : source.prepare('SELECT title,content FROM doc_nodes WHERE title=?').get(process.env.ARTICLE_FIXTURE_TITLE || '没咋了-高数强化-第5章-多元微分学（5.1至5.5·合并）'); source.close();
   assert.ok(study, 'Requested study article must exist');
 }
 const db = new Database(dbFile), now = Date.now();
@@ -30,7 +33,7 @@ db.close();
 const port = await new Promise(resolve => { const server = net.createServer(); server.listen(0, '127.0.0.1', () => { const port = server.address().port; server.close(() => resolve(port)); }); });
 fs.writeFileSync(path.join(appData, 'byqx-blog-desktop/config.json'), JSON.stringify({ LOCAL_DB_PATH: dbFile, ADMIN_PASSWORD: 'article-fixture', AUTH_SECRET: 'isolated-article-fixture', SYNC_DATABASE_URL: 'postgresql://fixture:fixture@127.0.0.1:1/fixture', PORT: String(port) }));
 const bootstrap = path.join(run, 'bootstrap.cjs');
-fs.writeFileSync(bootstrap, `const {app}=require('electron');app.setPath('appData',${JSON.stringify(appData)});app.setPath('userData',${JSON.stringify(profile)});app.on('browser-window-created',(_,w)=>w.on('show',()=>w.hide()));process.argv=[process.argv[0]];const main=${JSON.stringify(path.join(portable, 'resources/app/desktop/main.cjs'))};delete require.cache[require.resolve(main)];require(main);`);
+fs.writeFileSync(bootstrap, `const {app}=require('electron');app.setPath('appData',${JSON.stringify(appData)});app.setPath('userData',${JSON.stringify(profile)});app.on('browser-window-created',(_,w)=>{w.__reviewHide=()=>w.hide();w.on('show',w.__reviewHide);});process.argv=[process.argv[0]];const main=${JSON.stringify(path.join(portable, 'resources/app/desktop/main.cjs'))};delete require.cache[require.resolve(main)];require(main);`);
 const env = { ...process.env, BYQX_START_PATH: '/', BYQX_PI_AUTH_PATH: path.join(run, 'pi.json'), DATABASE_URL: `file:${dbFile}`, DATABASE_URL_FALLBACK: '', SYNC_DATABASE_URL: '', SYNC_DATABASE_URL_FALLBACK: '' }; delete env.ELECTRON_RUN_AS_NODE;
 const report = { isolated: true, directory: name, baseline, studyChars: study.content.length, studySha256: crypto.createHash('sha256').update(study.content).digest('hex'), cases: [], errors: [] };
 let app;
@@ -38,6 +41,7 @@ const pass = name => { report.cases.push(name); console.log('PASS ' + name); };
 try {
   app = await _electron.launch({ executablePath: path.join(portable, '白衣卿相.exe'), args: ['--toolchain-runner', bootstrap], env, cwd: run, timeout: 60000 });
   const page = await app.firstWindow(); page.setDefaultTimeout(20000); page.on('pageerror', error => { report.errors.push(error.message); console.error('PAGEERROR', page.url(), error.stack); });
+  await app.evaluate(({ BrowserWindow }) => { for (const window of BrowserWindow.getAllWindows()) window.webContents.setBackgroundThrottling(false); });
   // Chromium skips native ViewTransition.ready in hidden windows; exercise Astro's
   // real navigation fallback so its rejected animation promise cannot mask failures.
   await page.addInitScript(() => { document.startViewTransition = undefined; });
@@ -56,6 +60,43 @@ try {
   } else {
     assert.deepEqual(alert, []); assert.equal(await page.locator('#doc-3col').getAttribute('data-editing'), 'true');
     pass('Actual study article opens without read/initialization failure');
+    const foldControls = page.locator('.doc-ie-view .cm-callout-widget .callout-title button');
+    if (await foldControls.count()) {
+      if (visibleScroll) await app.evaluate(({ BrowserWindow }) => { const window = BrowserWindow.getAllWindows()[0]; window.removeListener('show', window.__reviewHide); window.setTitle('隔离 408 编辑验收（临时数据库）'); window.showInactive(); });
+      report.scrollGeometry = await page.locator('.doc-ie-view .cm-scroller').first().evaluate(scroller => ({ rect: scroller.getBoundingClientRect().toJSON(), height: scroller.scrollHeight, clientHeight: scroller.clientHeight, overflow: getComputedStyle(scroller).overflowY, windowY: scrollY, windowHeight: innerHeight, editorHeight: document.querySelector('.doc-ie-view').style.height }));
+      const middle = await page.locator('.doc-ie-view .cm-scroller').first().evaluate(scroller => { scroller.scrollTop = 0; const r = scroller.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+      await page.mouse.move(middle.x, middle.y);
+      let previous = 0;
+      report.scrollPositions = [];
+      for (let step = 0; step < 8; step++) {
+        if (visibleScroll) await page.mouse.wheel(0, 450);
+        else await page.locator('.doc-ie-view .cm-scroller').first().evaluate(scroller => scroller.scrollTop += 450);
+        // CDP dispatch completion does not mean Chromium has scrolled yet.
+        // Consume every wheel delta before measuring a later fold operation.
+        try { await page.waitForFunction(expected => document.querySelector('.doc-ie-view .cm-scroller').scrollTop >= expected - 2, (step + 1) * 450); }
+        catch (error) { report.stalledScroll = await page.locator('.doc-ie-view .cm-scroller').first().evaluate(scroller => ({ top: scroller.scrollTop, windowY: scrollY, rect: scroller.getBoundingClientRect().toJSON(), height: scroller.scrollHeight, clientHeight: scroller.clientHeight })); throw error; }
+        await page.waitForTimeout(200);
+        const top = await page.locator('.doc-ie-view .cm-scroller').first().evaluate(scroller => scroller.scrollTop);
+        report.scrollPositions.push(top);
+        assert.ok(top >= previous, 'Packaged downward scrolling must not jump backwards'); previous = top;
+      }
+      const point = await page.evaluate(() => {
+        const scroller = document.querySelector('.doc-ie-view .cm-scroller'), viewport = scroller.getBoundingClientRect();
+        const button = [...document.querySelectorAll('.doc-ie-view .cm-callout-widget .callout-title button')].find(el => { const r = el.getBoundingClientRect(); return r.top > viewport.top + 8 && r.bottom < viewport.bottom - 8; });
+        if (!button) throw Error('Expected a visible fold control in the actual study article');
+        const r = button.getBoundingClientRect(); return { x: r.left + 5, y: r.top + 5 };
+      });
+      report.foldPositions = [];
+      for (let toggle = 0; toggle < 4; toggle++) {
+        const before = await page.locator('.doc-ie-view .cm-scroller').first().evaluate(scroller => scroller.scrollTop);
+        await page.mouse.click(point.x, point.y); await page.waitForTimeout(300);
+        const after = await page.locator('.doc-ie-view .cm-scroller').first().evaluate(scroller => scroller.scrollTop);
+        report.foldPositions.push({ before, after });
+        assert.ok(Math.abs(after - before) < 8, `Packaged folding moved the viewport ${after - before}px`);
+      }
+      if (visibleScroll) await app.evaluate(({ BrowserWindow }) => { const window = BrowserWindow.getAllWindows()[0]; window.hide(); window.on('show', window.__reviewHide); });
+      pass(`Packaged actual study article ${visibleScroll ? 'mouse-wheel' : 'programmatic'} scrolling and repeated folding do not jump`);
+    }
     await page.locator('#doc-inline-source').click(); await page.waitForFunction(() => window.__docInlineEditor.getMode() === 'source');
     await page.locator('.doc-ie-view .cm-content').first().click(); await page.keyboard.press('Control+End'); await page.keyboard.insertText('\n\n隔离保存验收');
     await page.waitForFunction(async () => (await (await fetch('/api/doc/nodes/fixture-study')).json()).node.content.endsWith('隔离保存验收'));

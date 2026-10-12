@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
 import { build, preview } from 'vite';
 import { chromium } from 'playwright-core';
 
@@ -234,6 +235,48 @@ try {
     await page.locator('.cm-wy-checkbox').click();
     await page.waitForFunction(() => window.kernel.snapshot().source.includes('- [x] 任务'));
   });
+  const stableFold = async (source, selector) => {
+    await load(source);
+    await page.evaluate(() => { const v = window.kernel.view(); v.dispatch({ selection: { anchor: 0 } }); v.focus(); v.scrollDOM.scrollTop = 0; });
+    await page.mouse.move(600, 420);
+    let previous = 0;
+    for (let step = 0; step < 8; step++) {
+      await page.mouse.wheel(0, 450); await page.waitForTimeout(200);
+      const top = await page.evaluate(() => window.kernel.view().scrollDOM.scrollTop);
+      assert.ok(top >= previous, 'Ordinary downward scrolling must not jump backwards'); previous = top;
+    }
+    const point = await page.evaluate(selector => {
+      const viewport = window.kernel.view().scrollDOM.getBoundingClientRect();
+      const control = [...document.querySelectorAll(selector)].find(el => { const r = el.getBoundingClientRect(); return r.top > viewport.top + 8 && r.bottom < viewport.bottom - 8; });
+      if (!control) throw Error('No fold control in the middle of the long document: ' + JSON.stringify({ top: window.kernel.view().scrollDOM.scrollTop, height: window.kernel.view().scrollDOM.scrollHeight, controls: [...document.querySelectorAll(selector)].map(el => el.getBoundingClientRect().top) }));
+      const rect = control.getBoundingClientRect(); return { x: rect.left + 5, y: rect.top + 5 };
+    }, selector);
+    for (let toggle = 0; toggle < 4; toggle++) {
+      const before = await page.evaluate(() => ({ top: window.kernel.view().scrollDOM.scrollTop, y: window.scrollY }));
+      await page.mouse.click(point.x, point.y); await page.waitForTimeout(300);
+      const after = await page.evaluate(() => ({ top: window.kernel.view().scrollDOM.scrollTop, y: window.scrollY }));
+      assert.ok(Math.abs(after.top - before.top) < 8, `Folding below the viewport anchor moved ${after.top - before.top}px`);
+      assert.ok(Math.abs(after.y - before.y) < 2, 'Folding must not scroll the page');
+      assert.equal(await page.evaluate(() => window.kernel.snapshot().source), source, 'View-only folding must not modify Markdown');
+    }
+  };
+  const longBody = Array.from({ length: 8 }, (_, i) => `正文 ${i}：保持视口位置`).join('\n');
+  await check('long callout scrolling and repeated fold/unfold keep viewport', async () => {
+    const source = Array.from({ length: 35 }, (_, i) => `## 小节 ${i}\n\n> [!note]+ 块 ${i}\n${longBody.split('\n').map(line => '> ' + line).join('\n')}\n\n结束 ${i}`).join('\n\n');
+    await stableFold(source, '.cm-callout-widget .callout-title button');
+  });
+  await check('long collapse scrolling and repeated fold/unfold keep viewport', async () => {
+    const source = Array.from({ length: 35 }, (_, i) => `## 小节 ${i}\n\n:::collapse\n- :+ 问题 ${i}\n\n${longBody.split('\n').map(line => '  ' + line).join('\n')}\n:::\n\n结束 ${i}`).join('\n\n');
+    await stableFold(source, '.cm-visual-collapse summary');
+  });
+  await check('nested callout resizing preserves the outer columns viewport', async () => {
+    const source = Array.from({ length: 35 }, (_, i) => `## 小节 ${i}\n\n:::columns\n::column\n> [!note]+ 块 ${i}\n${longBody.split('\n').map(line => '> ' + line).join('\n')}\n::column\n右侧 ${i}\n:::\n\n结束 ${i}`).join('\n\n');
+    await stableFold(source, '.cm-callout-widget .callout-title button');
+  });
+  if (process.env.EDITOR_SCROLL_FIXTURE) await check('read-only actual 408 sample scroll/fold stability', async () => {
+    await stableFold(readFileSync(process.env.EDITOR_SCROLL_FIXTURE, 'utf8'), '.cm-callout-widget .callout-title button');
+  });
+
   const hostSource = '> [!note] 第一块\n> 第一块正文\n\n> [!note] 第二块\n> 第二块正文\n\n尾部正文';
   await page.route('**/api/**', async route => {
     const pathname = new URL(route.request().url()).pathname;
@@ -273,6 +316,65 @@ try {
     assert.equal(await page.evaluate(() => window.hostKernel.view().state.selection.main.head), expected);
     await page.keyboard.insertText('入口定位');
     assert.equal(await page.evaluate(() => window.hostKernel.view().state.doc.toString()), hostSource.slice(0, expected) + '入口定位' + hostSource.slice(expected));
+  });
+  for (const kind of ['home', 'doc']) await check(`actual ${kind} host reconciles an already-saved draft before new input`, async () => {
+    let persisted = '已经保存的正文', rejected = 0;
+    const url = kind === 'doc' ? '/api/doc/nodes/study' : '/api/articles/study';
+    const version = value => createHash('sha256').update(value).digest('hex');
+    const handler = async route => {
+      if (route.request().method() === 'PATCH') {
+        const body = route.request().postDataJSON();
+        if (body.expectedContentHash !== version(persisted) && body.content !== persisted) { rejected++; return route.fulfill({ status: 409, json: { error: '正文已变化' } }); }
+        persisted = body.content;
+      }
+      return route.fulfill({ json: { article: { content: persisted }, node: { content: persisted }, contentHash: version(persisted) } });
+    };
+    await page.route('**' + url, handler);
+    await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/tests/fixtures/editor-host.html?kind=${kind}`);
+    await page.waitForFunction(() => typeof window.__docInlineEditor?.open === 'function');
+    await page.evaluate(({ url, content, oldHash }) => localStorage.setItem('byqx:pending-article:' + url + ':content', JSON.stringify({ url, body: { content, expectedContentHash: oldHash } })), { url, content: persisted, oldHash: version('旧版本') });
+    await page.locator('#doc-inline-edit').click(); await page.waitForFunction(() => document.getElementById('doc-3col').dataset.editing === 'true');
+    await page.locator('.doc-ie-view .cm-content').fill('单窗口的新修改');
+    await page.waitForFunction(() => !Object.keys(localStorage).some(key => key.endsWith('/study:content')));
+    assert.equal(persisted, '单窗口的新修改'); assert.equal(rejected, 0);
+    assert.equal(await page.locator('.doc-ie-host [role="alert"]').count(), 0);
+    await page.unroute('**' + url, handler);
+  });
+  for (const kind of ['home', 'doc']) await check(`actual ${kind} host reloads text when its own save finishes during opening`, async () => {
+    let persisted = '保存前正文';
+    const url = kind === 'doc' ? '/api/doc/nodes/study' : '/api/articles/study';
+    const version = value => createHash('sha256').update(value).digest('hex');
+    const handler = async route => {
+      if (route.request().method() === 'PATCH') {
+        const body = route.request().postDataJSON();
+        if (body.expectedContentHash !== version(persisted)) return route.fulfill({ status: 409, json: { error: '正文已变化' } });
+        persisted = body.content;
+      }
+      return route.fulfill({ json: { article: { content: persisted }, node: { content: persisted }, contentHash: version(persisted) } });
+    };
+    await page.route('**' + url, handler);
+    await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/tests/fixtures/editor-host.html?kind=${kind}`);
+    await page.waitForFunction(() => typeof window.__docInlineEditor?.open === 'function');
+    await page.evaluate(({ url, hash }) => {
+      window.hostKernel.version(url, hash);
+      const digest = crypto.subtle.digest.bind(crypto.subtle);
+      let intercepted = false;
+      crypto.subtle.digest = async (...args) => {
+        const result = await digest(...args);
+        if (!intercepted && new TextDecoder().decode(args[1]) === '保存前正文') {
+          intercepted = true;
+          await window.hostKernel.save(url, { content: '打开期间完成保存的正文' });
+        }
+        return result;
+      };
+    }, { url, hash: version(persisted) });
+    await page.locator('#doc-inline-edit').click(); await page.waitForFunction(() => document.getElementById('doc-3col').dataset.editing === 'true');
+    assert.equal(await page.evaluate(() => window.hostKernel.view().state.doc.toString()), '打开期间完成保存的正文');
+    await page.locator('.doc-ie-view .cm-content').fill('打开期间完成保存的正文，加上新修改');
+    await page.waitForFunction(() => !Object.keys(localStorage).some(key => key.endsWith('/study:content')));
+    assert.equal(persisted, '打开期间完成保存的正文，加上新修改');
+    assert.equal(await page.locator('.doc-ie-host [role="alert"]').count(), 0);
+    await page.unroute('**' + url, handler);
   });
   await check('browser exceptions', async () => assert.deepEqual(errors, []));
   const output = path.join(root, 'outputs/editor-kernel');
