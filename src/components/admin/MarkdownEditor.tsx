@@ -32,6 +32,8 @@ import { columnsExtension, revealColumnHeading } from './cm-columns';
 import { calloutsExtension } from './cm-callouts';
 import { columnTarget, setColumnTarget } from './cm-columns-state';
 import { MarkdownContextMenu } from './cm-context-menu';
+import { interactiveTemplate, readInteractiveFile } from '../../lib/interactive-html';
+import { prepareInteractiveDocument } from '../../lib/interactive-html-document';
 import { revealVisualHeading, setVisualSource, visualDirectivesExtension } from './cm-visual-directives';
 import { headingFolding, isHeadingFolded, unfoldHeadingAt } from './cm-heading-folding';
 
@@ -979,6 +981,24 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(fun
               { label: '❝', icon: 'format_quote', title: '引用', cls: '', run: () => toggleLinePrefix(['> '], '> ') },
               { label: '`', icon: 'code', title: '行内代码', cls: '', run: () => wrapSelection('`', '`', 'code') },
               { label: '```', icon: 'code', title: '代码块', cls: '', run: () => insertBlock('\n```ts\n\n```\n') },
+              { label: 'HTML', icon: 'code', title: '交互 HTML', cls: '', run: () => insertBlock(`\n${interactiveTemplate().source}\n`) },
+              { label: '导入 HTML', icon: 'upload', title: '导入单个 HTML 文件', cls: '', run: () => {
+                const currentView = viewRef.current; if (!currentView) return;
+                const view = columnTarget(currentView) || currentView;
+                const doc = view.state.doc, selection = view.state.selection.main;
+                const input = document.createElement('input'); input.type = 'file'; input.accept = '.html,.htm';
+                input.onchange = async () => {
+                  const file = input.files?.[0]; if (!file) return;
+                  try {
+                    const { source, title } = await readInteractiveFile(file);
+                    if (!view.dom.isConnected || view.state.doc !== doc) throw Error('文章已变化，请重新导入；未写入任何内容');
+                    const { warnings } = prepareInteractiveDocument(source);
+                    const insert = `\n\n${interactiveTemplate(source, title).source}\n\n`;
+                    view.dispatch({ changes: { from: selection.head, insert }, selection: { anchor: selection.head + insert.length }, annotations: isolateHistory.of('full'), userEvent: 'input.html-import' }); view.focus();
+                    if (warnings.length) alert(warnings.join('\n'));
+                  } catch (error) { alert((error as Error).message); }
+                }; input.click();
+              } },
               { label: '🔗', icon: 'link', title: '链接（Ctrl/Cmd+K）', cls: '', run: () => wrapSelection('[', '](https://)', '链接文字') },
               { label: '⊞', icon: 'table_chart', title: '表格', cls: '', run: () => insertBlock('\n| 列 A | 列 B |\n| --- | --- |\n|  |  |\n') },
               { label: '≡', icon: 'highlight', title: '高亮（==文本==）', cls: '', run: () => wrapSelection('==', '==', '重点') },

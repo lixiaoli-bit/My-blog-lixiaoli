@@ -1,5 +1,6 @@
 import type { Root } from "mdast";
 import type { SourceBlock } from "../mindmap-types";
+import { interactiveOptions } from '../interactive-html';
 
 // Browser-safe fingerprint. Article versions themselves use SHA-256 on the server.
 export function blockFingerprint(text: string): string {
@@ -16,6 +17,8 @@ interface AstNode {
   type: string;
   name?: string;
   value?: string;
+  lang?: string;
+  meta?: string;
   depth?: number;
   children?: AstNode[];
   position?: { start: { offset?: number }; end: { offset?: number } };
@@ -51,12 +54,15 @@ export function remarkSourceBlocks() {
         end = node.position?.end.offset;
       if (
         supported &&
-        (!inContainer || node.type === "blockquote") &&
+        (!inContainer || node.type === "blockquote" || (node.type === 'code' && node.lang === 'html-interactive')) &&
         start !== undefined &&
         end !== undefined
       ) {
         const markdown = source.slice(start, end).replace(/\r\n?/g, "\n");
-        const text = plain(node)
+        const interactive = node.type === 'code' && node.lang === 'html-interactive';
+        let interactiveTitle = '交互演示';
+        if (interactive) try { interactiveTitle = interactiveOptions(node.meta).title; } catch { /* Invalid blocks retain a navigable placeholder. */ }
+        const text = (interactive ? interactiveTitle : plain(node))
           .replace(/[\uE000-\uE01F]/g, "")
           .replace(/\s+/g, " ")
           .trim();
@@ -80,10 +86,18 @@ export function remarkSourceBlocks() {
         blocks.push({
           key,
           blockId: "",
-          kind: callout ? "callout" : node.type,
+          kind: interactive ? 'interactive-html' : callout ? "callout" : node.type,
           title,
           text,
-          markdown,
+          // Quoted/indented code offsets start after the container prefix. Keep
+          // the parsed program whole for later sourceRef previews.
+          markdown: interactive ? (() => {
+            const body = node.value || '';
+            let length = 3;
+            for (const match of body.matchAll(/`+/g)) length = Math.max(length, match[0].length + 1);
+            const fence = '`'.repeat(length);
+            return `${fence}html-interactive${node.meta ? ` ${node.meta}` : ''}\n${body}\n${fence}`;
+          })() : markdown,
           fingerprint,
           headingPath: headings.filter(Boolean).join(" / "),
           before: "",

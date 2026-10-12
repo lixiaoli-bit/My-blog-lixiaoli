@@ -12,8 +12,8 @@ export const POST: APIRoute = async ({ request }) => {
   if (source.length > 500_000) return json({ error: '内容过长' }, 413);
   if (!source.trim()) return json({ html: '', toc: [] });
   try {
-    const { html, toc } = await renderMdx(source);
-    return json({ html, toc });
+    const { html, toc, interactiveBlocks } = await renderMdx(source);
+    return json({ html, toc, interactiveBlocks });
   } catch (error) {
     console.error('[api/articles/preview]', error);
     return json({ error: '预览渲染失败，请检查 Markdown 语法' }, 422);

@@ -28,6 +28,7 @@ import { makeClickToPos } from './cm-live-preview';
 import { isTableRow, isTableSeparator, parseTable, TableWidget } from './cm-table';
 import { columnBlocks } from './cm-columns-state';
 import { scanVisualDirectives } from '../../lib/markdown-visual-directives';
+import { InteractiveCodeWidget } from './cm-interactive-html';
 import { scanMarkdownCallouts } from '../../lib/markdown-callouts';
 // katex 必须静态 import（勿改回 import('katex')）：
 // 1) vite build 会把 katex 并入本模块所属 chunk，随 MarkdownEditor 的动态 import 按需加载，
@@ -318,7 +319,7 @@ function computeBase(doc: typeof EditorState.prototype.doc): { items: DecoItem[]
   while (i < lines.length) {
     if (blocked.has(i)) { i += 1; continue; }
     const line = lines[i]!;
-    const fence = line.text.match(/^ {0,3}(`{3,}|~{3,})([\w+-]*)\s*$/);
+    const fence = line.text.match(/^ {0,3}(`{3,}|~{3,})([\w+-]*)(.*)$/);
     if (fence) {
       const body: string[] = [];
       let j = i + 1;
@@ -339,7 +340,7 @@ function computeBase(doc: typeof EditorState.prototype.doc): { items: DecoItem[]
           from,
           to,
           deco: Decoration.replace({
-            widget: new CodeBlockWidget(fence[2] ?? '', body.join('\n'), from),
+            widget: fence[2] === 'html-interactive' ? new InteractiveCodeWidget(body.join('\n'), fence[3]!.trim(), from) : new CodeBlockWidget(fence[2] ?? '', body.join('\n'), from),
           }),
           reveal: true,
         });

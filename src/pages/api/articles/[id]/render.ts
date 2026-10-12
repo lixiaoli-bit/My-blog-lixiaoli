@@ -18,7 +18,7 @@ export const GET: APIRoute = async ({ params, cookies }) => {
     const rendered = await renderMdx(article.content);
     const ids = collectImageIdsFromHtml(rendered.html);
     const html = ids.length ? injectImageSizeAttrs(rendered.html, await getImageSizes(ids)) : rendered.html;
-    return json({ title: article.title, html, toc: rendered.toc });
+    return json({ title: article.title, html, toc: rendered.toc, interactiveBlocks: rendered.interactiveBlocks });
   } catch (error) {
     console.error('[api/articles/render]', error);
     return json({ error: '渲染失败' }, 500);

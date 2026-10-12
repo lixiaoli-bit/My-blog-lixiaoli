@@ -18,11 +18,11 @@ export const GET: APIRoute = async ({ params }) => {
   try {
     const article = await getDocArticle(id);
     if (!article) return notFound('文章不存在');
-    const { html: rawHtml, toc } = await renderMdx(article.content);
+    const { html: rawHtml, toc, interactiveBlocks } = await renderMdx(article.content);
     // 正文图片注入原始宽高（DB 图片），消除懒加载宽度跳变
     const ids = collectImageIdsFromHtml(rawHtml);
     const html = ids.length > 0 ? injectImageSizeAttrs(rawHtml, await getImageSizes(ids)) : rawHtml;
-    return json({ title: article.title, html, toc });
+    return json({ title: article.title, html, toc, interactiveBlocks });
   } catch (err) {
     console.error('[api/doc/articles/render]', err);
     return json({ error: '渲染失败' }, 500);

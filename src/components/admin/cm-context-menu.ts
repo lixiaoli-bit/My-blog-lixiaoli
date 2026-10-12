@@ -5,6 +5,8 @@ import { CALLOUT_LABELS, CALLOUT_TYPES, MARK_LABELS, MARK_VARIANTS } from '../..
 import { calloutTemplate, codeBlockTemplate, collapseTemplate, columnsTemplate, galleryTemplate, inlineTemplate, tableTemplate, tabsTemplate } from '../../lib/markdown-context-templates';
 import type { MarkdownTemplate } from '../../lib/markdown-context-templates';
 import { freezeAiSelection, openAiSelection } from './cm-ai-selection';
+import { interactiveTemplate, readInteractiveFile } from '../../lib/interactive-html';
+import { prepareInteractiveDocument } from '../../lib/interactive-html-document';
 
 type CustomPanel = 'callout' | 'gallery' | 'tabs';
 interface MenuItem {
@@ -177,6 +179,8 @@ export class MarkdownContextMenu {
     ];
     const blocks: MenuItem[] = [
       code,
+      { label: '交互 HTML', disabled: !canBlock, action: () => this.addBlock(context, interactiveTemplate()) },
+      { label: '导入 HTML', disabled: !canBlock, action: () => this.importHtml(context) },
       { label: '普通引用', disabled: !canBlock, action: () => this.addBlock(context, { source: '> 引用内容', focusFrom: 2, focusTo: 6 }) },
       { label: 'Callout 引用', disabled: !canBlock, custom: 'callout' },
       { label: '表格', disabled: !canBlock, action: () => this.addBlock(context, tableTemplate()) },
@@ -213,6 +217,21 @@ export class MarkdownContextMenu {
     const insert = `[${selected}](https://)`;
     const at = context.from + insert.length - 1;
     this.write(context, context.from, context.to, insert, at - 8, at);
+  }
+
+  private importHtml(context: Context): void {
+    const input = document.createElement('input'); input.type = 'file'; input.accept = '.html,.htm';
+    input.onchange = async () => {
+      const file = input.files?.[0]; if (!file) return;
+      try {
+        const { source, title } = await readInteractiveFile(file);
+        if (!this.valid(context)) { alert('文章或光标内容已变化，请重新导入；未写入任何内容'); return; }
+        const { warnings } = prepareInteractiveDocument(source);
+        this.addBlock(context, interactiveTemplate(source, title));
+        if (warnings.length) alert(warnings.join('\n'));
+      } catch (error) { alert((error as Error).message); }
+    };
+    input.click();
   }
 
   private async copy(context: Context): Promise<void> {

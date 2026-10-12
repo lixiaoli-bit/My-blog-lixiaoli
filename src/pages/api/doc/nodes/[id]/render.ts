@@ -25,11 +25,11 @@ export const GET: APIRoute = async ({ params, url }) => {
   const node = await getDocNode(id);
   if (!node || node.kind !== 'article') return notFound('文章不存在');
   try {
-    const { html: rawHtml, toc } = await renderMdx(node.content);
+    const { html: rawHtml, toc, interactiveBlocks } = await renderMdx(node.content);
     // 正文图片注入原始宽高（DB 图片），消除懒加载宽度跳变
     const ids = collectImageIdsFromHtml(rawHtml);
     const html = ids.length > 0 ? injectImageSizeAttrs(rawHtml, await getImageSizes(ids)) : rawHtml;
-    const payload = { title: node.title, html, toc };
+    const payload = { title: node.title, html, toc, interactiveBlocks };
     return v ? jsonCached(payload, 31_536_000, 86_400) : json(payload);
   } catch (err) {
     console.error('[api/doc/nodes/render]', err);

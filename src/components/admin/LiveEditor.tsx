@@ -405,6 +405,9 @@ export default function LiveEditor({ initial, articles, categories, categoryMap 
     const res = await fetch(`/api/articles/${id}`);
     if (!res.ok) return;
     const data = (await res.json()) as { article: InitialDraft };
+    ++previewSeq.current;
+    setPreviewHtml('');
+    setPreviewLoading(false);
     setDraft({ ...data.article, cover: data.article.cover ?? '', tags: data.article.tags ?? [] });
     setEncryptOn(Boolean(data.article.encrypted));
     setEncryptPassword('');
@@ -1149,6 +1152,7 @@ export default function LiveEditor({ initial, articles, categories, categoryMap 
               需要绝对定位铺满编辑区；就绪后由 onReady 撤下。 */}
           <div className={`relative min-h-0 min-w-0 flex-1 ${viewMode === 'edit' ? 'flex' : 'hidden'}`}>
             <MarkdownEditor
+              key={draft.id}
               ref={editorRef}
               initialContent={draft.content}
               wysiwyg
@@ -1178,7 +1182,7 @@ export default function LiveEditor({ initial, articles, categories, categoryMap 
             )}
           </div>
           {viewMode === 'preview' && (
-            <div className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-background px-6 py-8 md:px-10">
+            <div data-interactive-manual className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-background px-6 py-8 md:px-10">
               {previewLoading ? <p className="text-sm text-muted-foreground">正在渲染预览…</p> : previewError ? <p role="alert" className="text-sm text-destructive">{previewError}</p> : previewHtml ? <article className="prose prose-neutral dark:prose-invert mx-auto max-w-3xl" dangerouslySetInnerHTML={{ __html: previewHtml }} /> : <p className="mx-auto max-w-3xl text-sm text-muted-foreground">空白文章，返回编辑开始写作。</p>}
             </div>
           )}

@@ -9,7 +9,7 @@
 // "Cannot use import statement outside a module"（preload 加载失败，实测踩过）。
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
-contextBridge.exposeInMainWorld('desktop', {
+if (process.isMainFrame) contextBridge.exposeInMainWorld('desktop', {
   /** 桌面端构建版本（package.json version） */
   version: process.env.DESKTOP_VERSION ?? '',
   toolchain: (action, input) => ipcRenderer.invoke('desktop:toolchain', action, input),

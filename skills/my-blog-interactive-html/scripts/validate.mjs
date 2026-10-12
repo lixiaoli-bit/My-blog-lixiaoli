@@ -1,0 +1,16 @@
+import fs from 'node:fs';
+import path from 'node:path';
+const [file, markdown] = process.argv.slice(2);
+if (!file) throw Error('用法：node validate.mjs 页面.html [输出.md]');
+const bytes = fs.readFileSync(file);
+if (bytes.length > 256 * 1024) throw Error('源码超过 256 KiB');
+const source = new TextDecoder('utf-8', {fatal:true}).decode(bytes);
+if (!source.trim() || source.includes('\0')) throw Error('源码为空或含 NUL');
+const external = /<(?:script|img|link|iframe|object|embed)\b[^>]*(?:src|href|data)\s*=\s*["']?(?!data:)[^\s"'>]+|@import\b|\b(?:fetch|WebSocket|Worker)\s*\(/i;
+if (external.test(source)) throw Error('检测到外部依赖或联网能力，请使用自包含页面');
+const title = path.basename(file).replace(/\.html?$/i,'').replace(/[\r\n"]/g,'').slice(0,200);
+let length = 3;
+for (const match of source.matchAll(/`+/g)) length = Math.max(length, match[0].length + 1);
+const fence = '`'.repeat(length);
+if (markdown) fs.writeFileSync(markdown, `${fence}html-interactive title=${JSON.stringify(title)} height="360"\n${source}\n${fence}\n`, 'utf8');
+console.log(`源码检查通过：${bytes.length} 字节。此检查不替代真实运行和教学内容核对。`);

@@ -127,8 +127,7 @@ app.disableHardwareAcceleration();
 //    因此在命令行层再关掉 GPU 与合成，彻底不创建 GPU 进程。
 app.commandLine.appendSwitch('disable-gpu');
 app.commandLine.appendSwitch('disable-gpu-compositing');
-app.commandLine.appendSwitch('disable-gpu-sandbox');
-app.commandLine.appendSwitch('no-sandbox');
+app.enableSandbox();
 
 /** 生成随机 AUTH_SECRET（会话 Cookie 按 origin 隔离，本地无需与线上一致） */
 function randomSecret() {
@@ -257,14 +256,18 @@ function openExternalPage(url) {
   } catch { /* 非 URL 目标不交给系统打开 */ }
 }
 
-ipcMain.handle('desktop:navigation-state', (event) => navigationState(navigationWindow(event.sender)));
+function trustedWindow(event) {
+  if (event.senderFrame !== event.sender.mainFrame || !isLocalPage(event.senderFrame?.url || '')) return null;
+  return navigationWindow(event.sender);
+}
+ipcMain.handle('desktop:navigation-state', (event) => navigationState(trustedWindow(event)));
 ipcMain.handle('desktop:focus-window', (event) => {
-  const win = navigationWindow(event.sender);
+  const win = trustedWindow(event);
   if (!win || !isLocalPage(event.sender.getURL())) return;
   if (win.isMinimized()) win.restore(); win.show(); win.focus();
 });
 async function toolchainOwner(event) {
-  const win = navigationWindow(event.sender);
+  const win = trustedWindow(event);
   if (!win || event.senderFrame !== event.sender.mainFrame || !isLocalPage(event.senderFrame.url) || new URL(event.senderFrame.url).pathname.replace(/\/+$/, '') !== '/toolchain') throw Error('请在桌面端工具链页面操作');
   const cookies = await event.sender.session.cookies.get({ url: siteBaseUrl });
   const response = await fetch(`${siteBaseUrl}/api/toolchain/access`, { headers: { cookie: cookies.map(cookie => `${cookie.name}=${cookie.value}`).join('; ') }, signal: AbortSignal.timeout(4000) });
@@ -290,18 +293,18 @@ ipcMain.handle('desktop:toolchain-picker', async (event, kind) => {
   } catch (error) { return { ok: false, error: error.message || '选择失败' }; }
 });
 ipcMain.handle('desktop:pick-skill-directory', async (event, skillId) => {
-  const win = navigationWindow(event.sender);
+  const win = trustedWindow(event);
   if (!win || !isLocalPage(event.senderFrame?.url || '') || !['note-normalizer', 'my-blog-structured-notes'].includes(skillId)) return null;
   const result = await dialog.showOpenDialog(win, { title: `选择 ${skillId} 技能目录`, properties: ['openDirectory'] });
   return result.canceled ? null : result.filePaths[0] || null;
 });
 ipcMain.handle('desktop:navigation-back', (event) => {
-  const win = navigationWindow(event.sender);
+  const win = trustedWindow(event);
   if (win && navigationState(win).canGoBack) win.webContents.navigationHistory.goBack();
   if (win) publishNavigationState(win);
 });
 ipcMain.handle('desktop:navigation-forward', (event) => {
-  const win = navigationWindow(event.sender);
+  const win = trustedWindow(event);
   if (win && navigationState(win).canGoForward) win.webContents.navigationHistory.goForward();
   if (win) publishNavigationState(win);
 });
@@ -331,9 +334,18 @@ function createWindow(url, { primary = false } = {}) {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
+      nodeIntegrationInSubFrames: false,
+      webviewTag: false,
     },
   });
   appWindows.add(win);
+  win.webContents.on('will-frame-navigate', event => {
+    if (!event.isMainFrame && (event.frame?.url === 'about:srcdoc' || event.frame?.name?.startsWith('byqx-html-')) && event.url !== 'about:srcdoc') {
+      event.preventDefault();
+      event.frame?.executeJavaScript("parent.postMessage({channel:'byqx-interactive',token:window.name,type:'navigation'},'*')").catch(() => {});
+    }
+  });
   win.webContents.on('did-navigate', () => publishNavigationState(win));
   win.webContents.on('did-navigate-in-page', () => publishNavigationState(win));
   win.webContents.on('will-navigate', (event) => {

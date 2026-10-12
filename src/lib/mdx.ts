@@ -23,6 +23,8 @@ import rehypeStringify from 'rehype-stringify';
 import { remarkFixGfmAutolink, remarkPlugins, buildRehypePlugins, takeCollectedToc, rehypeDecodeMathEq, rehypeTocCollector, type TocItem, type BlockAnchorMap, type BlockAnchorItem } from './mdx-plugins';
 import { mdxComponents, type MDXComponentMap } from '@/components/mdx/registry';
 import { codeFenceGuard } from './markdown-code-fence';
+import type { InteractiveBlock } from './interactive-html';
+import { collectInteractiveBlocks } from './mdx/interactive-html';
 
 /** 渲染选项 */
 export interface RenderOptions {
@@ -77,7 +79,7 @@ function cacheDelete(key: string): void {
 
 function cacheSet(key: string, value: RenderedMdx): void {
   // 限制估算的字符串字节量，避免含大量公式的 HTML 仅靠条目数限制而撑爆内存。
-  const size = 2 * (value.html.length + JSON.stringify(value.toc).length + JSON.stringify(value.blockMap).length);
+  const size = 2 * (value.html.length + JSON.stringify(value.toc).length + JSON.stringify(value.blockMap).length + JSON.stringify(value.interactiveBlocks ?? []).length);
   cacheDelete(key);
   if (size > RENDER_CACHE_BYTES_MAX) return;
   RENDER_CACHE.set(key, { result: value, size });
@@ -122,7 +124,8 @@ const BACKTICK_VARIANT_RE = /[\uFF40\u02CB\u2035]/g;
 
 /** 把源码中的反引号变体统一规范化为 ASCII 反引号（不改动其余内容） */
 export function normalizeBackticks(source: string): string {
-  return source.replace(BACKTICK_VARIANT_RE, '`');
+  const inCode = codeFenceGuard();
+  return source.split('\n').map(line => inCode(line) ? line : line.replace(BACKTICK_VARIANT_RE, '`')).join('\n');
 }
 
 /**
@@ -1369,6 +1372,8 @@ export async function renderMarkdownHtml(source: string): Promise<string> {
 
 /** 渲染结果 */
 export interface RenderedMdx {
+  /** Executable HTML remains data; only isolated client containers run it. */
+  interactiveBlocks?: InteractiveBlock[];
   /** 渲染后的 HTML（供 set:html / 预览使用） */
   html: string;
   /** 文章目录（h2/h3） */
@@ -1557,7 +1562,7 @@ async function compileMdx(normalized: string, merged: MDXComponentMap): Promise<
     const toc = takeCollectedToc(tocToken) ?? (await extractToc(normalized));
     const blockMap = collectBlockMapFromHtml(html);
 
-    return { html, toc, blockMap };
+    return { html, toc, blockMap, interactiveBlocks: collectInteractiveBlocks(normalized) };
   } finally {
     // 编译或 React 渲染失败时也释放插件寄存的目录，失败任务允许下次重试。
     takeCollectedToc(tocToken);

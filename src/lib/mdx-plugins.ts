@@ -32,6 +32,7 @@ import type { Root, RootContent, Node, Paragraph } from 'mdast';
 import { footnoteDef, footnoteRef, textNode, type MdxDirectiveNode } from './mdx/nodes';
 import { remarkCallout } from './mdx/callout';
 import { remarkSourceBlocks } from './mdx/source-blocks';
+import { remarkInteractiveHtml } from './mdx/interactive-html';
 import { remarkCollapse } from './mdx/collapse';
 import { remarkTabs } from './mdx/tabs';
 import { remarkColumns } from './mdx/columns';
@@ -984,6 +985,7 @@ export function remarkFixGfmAutolink(this: Processor) {
 export const remarkPlugins = [
   remarkGfm,
   remarkSourceBlocks,
+  remarkInteractiveHtml,
   remarkFixGfmAutolink,
   remarkMath,
   remarkDirective,

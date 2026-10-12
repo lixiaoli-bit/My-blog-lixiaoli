@@ -28,12 +28,14 @@ import Pre from './Pre';
 import InlineCode from './InlineCode';
 import LightboxImage from './LightboxImage';
 import ExternalLink from './ExternalLink';
+import InteractiveHtml from './InteractiveHtml';
 
 /** 组件映射类型 */
 export type MDXComponentMap = Record<string, ComponentType<Record<string, unknown>>>;
 
 /** 默认组件注册表 */
 export const mdxComponents: MDXComponentMap = {
+  InteractiveHtml,
   Admonition,
   Callout,
   Collapse,

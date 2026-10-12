@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><title>计数器</title>
+<style>body{font:16px/1.6 system-ui}section{border:2px solid var(--ink,#222);padding:16px;box-shadow:4px 4px var(--ink,#222)}button{min-height:36px;padding:6px 14px;border:2px solid var(--ink,#222);background:var(--accent,#ff5a1f);color:var(--ink,#222)}output{display:block;font-size:32px}</style></head>
+<body><section><h2>计数器</h2><p>每次点击加一，重置回到零。</p><output id="value" aria-live="polite">0</output><button id="add">加一</button> <button id="reset">重置</button></section>
+<script>let n=0;const output=document.querySelector('#value');document.querySelector('#add').onclick=()=>output.textContent=++n;document.querySelector('#reset').onclick=()=>{n=0;output.textContent=n;};</script></body></html>

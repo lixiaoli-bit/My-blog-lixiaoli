@@ -53,9 +53,9 @@ export const POST: APIRoute = async ({ params, cookies, request }) => {
     const results = [];
     for (const node of nodes) {
       try {
-        const { html } = await renderMdx(node.text);
+        const { html, interactiveBlocks } = await renderMdx(node.text);
         if (html.length > 1000000) throw new Error("render too large");
-        results.push({ ...node, html });
+        results.push({ ...node, html, interactiveBlocks });
       } catch {
         results.push({
           ...node,
