@@ -33,7 +33,7 @@ export default function ArticleCoverGenerator({ articleId }: { articleId: string
     if (mounted.current) { setCandidate(undefined); setMessage('封面已生成并应用，可在文章设置或首页查看。'); }
   }
   async function generate() {
-    setBusy(true); setMessage('正在保存文章、提炼主题并生成封面…'); dialog.current?.showModal();
+    setBusy(true); setMessage('正在保存文章、随机选择范围并创作封面提示词，然后生成图片…'); dialog.current?.showModal();
     const editor = activeAiEditor();
     try {
       if (editor && (editor.domain !== 'article' || editor.targetId !== articleId || !await editor.flush())) throw Error('正文保存未完成，请重试');
@@ -56,7 +56,7 @@ export default function ArticleCoverGenerator({ articleId }: { articleId: string
     <dialog ref={dialog} onClose={() => button.current?.focus()} aria-labelledby={`cover-title-${articleId}`} className="w-[min(560px,calc(100vw-32px))] max-h-[85dvh] overflow-auto rounded-2xl border-2 border-foreground bg-background p-5 text-foreground shadow-[6px_6px_0_var(--color-primary)] backdrop:bg-black/40">
       <div className="flex items-center justify-between gap-3"><h2 id={`cover-title-${articleId}`} className="font-bold">文章封面</h2><button type="button" onClick={() => dialog.current?.close()} aria-label="关闭封面窗口"><X size={18} /></button></div>
       <p className="mt-3 text-sm" role="status">{message}</p>
-      <p className="mt-2 text-xs text-muted-foreground">文字摘要使用当前接入模式；图片服务在 AI 助手设置中单独选择，Cloudflare 免费额度用尽时需要等次日重置或按账户套餐计费。</p>
+      <p className="mt-2 text-xs text-muted-foreground">每次从动漫、风景、人物、插画中随机选择，再创作提示词生成封面，不使用文章内容。提示词使用当前文字模型；图片服务在 AI 助手设置中选择，Cloudflare 额度及计费以账户套餐为准。</p>
       {candidate && <><img src={candidate.url} alt="AI 生成的文章封面预览" className="mt-4 aspect-[3/2] w-full rounded-lg border border-border object-cover" />
         <div className="mt-4 flex flex-wrap gap-2"><button type="button" disabled={busy} className="rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground disabled:opacity-50" onClick={async () => {
           setBusy(true); try { await apply(candidate, true); } catch (err) { setMessage((err as Error).message); } finally { if (mounted.current) setBusy(false); }
