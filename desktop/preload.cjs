@@ -12,6 +12,8 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 if (process.isMainFrame) contextBridge.exposeInMainWorld('desktop', {
   /** 桌面端构建版本（package.json version） */
   version: process.env.DESKTOP_VERSION ?? '',
+  prepareMarkdownExport: (nodeId) => ipcRenderer.invoke('desktop:prepare-markdown-export', nodeId),
+  startMarkdownDrag: (token) => { if (typeof token === 'string') ipcRenderer.send('desktop:start-markdown-drag', token); },
   toolchain: (action, input) => ipcRenderer.invoke('desktop:toolchain', action, input),
   pickToolchain: (kind) => ipcRenderer.invoke('desktop:toolchain-picker', kind),
   // Electron 32+ removed File.path. A renderer-created fake File resolves to no

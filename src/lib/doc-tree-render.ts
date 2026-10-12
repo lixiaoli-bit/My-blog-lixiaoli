@@ -158,6 +158,7 @@ export function renderDocTree(items: DocTreeItem[], opts: DocTreeRenderOpts): st
           (n.id === activeId ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent hover:text-foreground') +
           `">` +
           `<a href="${href}" data-article-switch="${n.id}" class="doc-tree-title" title="${esc(n.title)}" data-directory-title="${esc(n.title)}" aria-current="${n.id === activeId ? 'page' : 'false'}">${esc(n.title)}</a>` +
+          (authed && articlePath === 'docs' ? `<button type="button" draggable="true" data-markdown-export-drag="${n.id}" title="拖到桌面或文件夹导出 Markdown；点击下载" aria-label="导出${esc(n.title)}的 Markdown" class="shrink-0 px-1 text-xs">↗</button>` : '') +
           (authed ? `<button type="button" data-tree-menu-trigger title="文章操作" aria-label="${esc(n.title)}的操作" class="shrink-0 rounded px-1.5 text-xs text-muted-foreground hover:text-primary focus-visible:outline focus-visible:outline-primary">${articleUiIcon('more')}</button>` : '') +
           `</div>`;
       }

@@ -216,6 +216,7 @@ const folderOptionsJson = JSON.stringify(folderOptions);
   import { setupArticleDetailRails } from '@/lib/article-detail-rails';
   import { enhanceBodyHeadings, revealBodyHeading } from '@/lib/body-heading-folding';
   import { installMarkdownFileDrop } from '@/lib/markdown-file-drop';
+  import { installMarkdownFileExport, downloadDocMarkdown } from '@/lib/markdown-file-export';
 
   const isAuthed = (): boolean => document.querySelector('[data-article-domain="docs"]') !== null
     && document.getElementById('doc-detail-data')?.dataset.authed === '1';
@@ -1266,7 +1267,9 @@ const folderOptionsJson = JSON.stringify(folderOptions);
       const treeRoot = el<HTMLElement>('doc-ltoc-inner');
       if (treeRoot && !boundMenus.has(treeRoot)) {
         boundMenus.add(treeRoot);
-        const cleanup = installTreeContextMenu(treeRoot, onTreeCommand);
+        const cleanup = installTreeContextMenu(treeRoot, onTreeCommand, { exportMarkdown: target => target.id ? downloadDocMarkdown(target.id) : undefined });
+        const cleanupExport = installMarkdownFileExport(treeRoot);
+        document.addEventListener('astro:before-swap', cleanupExport, { once: true });
         const cleanupImport = installMarkdownFileDrop(treeRoot, {
           nodes: readNodes, endpoint: '/api/doc/import', bundleId: readBundle().id, rootLabel: '本册根目录',
           onImported: node => {

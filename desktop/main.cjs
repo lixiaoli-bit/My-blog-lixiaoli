@@ -260,6 +260,7 @@ function trustedWindow(event) {
   if (event.senderFrame !== event.sender.mainFrame || !isLocalPage(event.senderFrame?.url || '')) return null;
   return navigationWindow(event.sender);
 }
+require('./markdown-export.cjs').installMarkdownExport({ app, ipcMain, trustedWindow, baseUrl: () => siteBaseUrl, nativeImage });
 ipcMain.handle('desktop:navigation-state', (event) => navigationState(trustedWindow(event)));
 ipcMain.handle('desktop:focus-window', (event) => {
   const win = trustedWindow(event);
