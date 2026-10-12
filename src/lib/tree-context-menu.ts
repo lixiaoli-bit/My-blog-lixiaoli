@@ -1,8 +1,11 @@
+import { appendArticleViewMenu } from './article-view-menu';
 /** 左侧文章目录的共用菜单；只处理呈现与输入，数据操作由页面适配器执行。 */
 export type TreeTarget = { id: string | null; kind: 'root' | 'folder' | 'article'; title: string };
 export type TreeCommand = 'create-article' | 'create-folder' | 'edit' | 'delete';
 interface MenuOptions {
   label?: string;
+  viewMenu?: boolean;
+  exportMarkdown?: (target: TreeTarget) => void | Promise<void>;
   resolveTarget?: (element: Element) => TreeTarget | null;
 }
 
@@ -30,6 +33,7 @@ export function installTreeContextMenu(
   menu.className = 'fixed z-[90] hidden min-w-40 max-h-[min(70vh,24rem)] overflow-y-auto rounded-lg border border-border bg-card p-1 text-sm text-foreground shadow-xl';
   document.body.append(menu);
   let current: TreeTarget | null = null;
+  let removeViewMenu: (() => void) | undefined;
   let returnFocus: HTMLElement | null = null;
   let longPress: number | undefined;
   let pressX = 0;
@@ -67,6 +71,7 @@ export function installTreeContextMenu(
     if (!source) return;
     current = source.value;
     returnFocus = source.focus;
+    removeViewMenu?.();
     menu.replaceChildren();
     for (const item of COMMANDS[current.kind]) {
       const button = document.createElement('button');
@@ -77,6 +82,12 @@ export function installTreeContextMenu(
       button.textContent = item.label;
       menu.append(button);
     }
+    if (current.kind === 'article' && options.exportMarkdown) {
+      const target = current, button = document.createElement('button'); button.type = 'button'; button.role = 'menuitem';
+      button.className = 'md-context-item'; button.textContent = '导出 Markdown';
+      button.addEventListener('click', () => { close(true); void options.exportMarkdown?.(target); }, { once: true }); menu.append(button);
+    }
+    if (options.viewMenu) removeViewMenu = appendArticleViewMenu(menu, () => close(true));
     menu.classList.remove('hidden');
     menu.style.left = '0px';
     menu.style.top = '0px';
@@ -169,6 +180,7 @@ export function installTreeContextMenu(
   window.addEventListener('scroll', () => close(), { signal, capture: true });
   const cleanup = (): void => {
     controller.abort();
+    removeViewMenu?.();
     if (longPress !== undefined) window.clearTimeout(longPress);
     menu.remove();
   };
@@ -184,6 +196,7 @@ export function installArticleContextMenu(
 ): () => void {
   return installTreeContextMenu(root, onCommand, {
     label: '文章操作',
+    viewMenu: true,
     resolveTarget: (element) => {
       if (element.closest('.cm-content, .md-table-widget, .cm-visual-directive, .cm-columns-widget, input, textarea, select, [role="menu"]')) return null;
       return readTarget();

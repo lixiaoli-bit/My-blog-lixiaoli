@@ -22,6 +22,7 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { boundChatContext, MAX_CHAT_MESSAGE_CHARS, type ChatMessage } from '@/lib/ai-chat-context';
 import { readSseData } from '@/lib/ai-stream';
 import { requestAiEdit } from '@/lib/ai-editor-bridge';
+import { appendArticleViewMenu } from '@/lib/article-view-menu';
 import { Brain, MessageCircle, Send, Square, Trash2, X } from 'lucide-react';
 import XiaoQingFox from './XiaoQingFox';
 import { LEVEL_NAMES } from '@/lib/ai-bond-levels';
@@ -480,6 +481,12 @@ export default function AiChatFloat({ enabled }: Props) {
     },
     [consumeStream],
   );
+
+  useEffect(() => {
+    if (!menu) return;
+    const element = document.getElementById('ai-context-menu');
+    return element ? appendArticleViewMenu(element, () => setMenu(null)) : undefined;
+  }, [menu]);
 
   /* ---------- F2：捕获阶段 contextmenu，全站任意位置选区 → 自绘菜单（屏蔽原生菜单） ---------- */
   useEffect(() => {

@@ -103,6 +103,7 @@ export default function HomeArticleSettings({ article, categories, categoryId }:
         if (!moved.ok) throw new Error('文章已保存，但目录移动失败，请重试');
       }
       setCurrent((prev) => ({ ...prev, summary, cover, type, tags: tags.split(/[,，]/).map((tag) => tag.trim()).filter(Boolean), encrypted, encryptHint: hint }));
+      window.dispatchEvent(new CustomEvent('article:cover-changed', { detail: { id: current.id, url: cover } }));
       const folderChanged = folder !== savedFolder;
       setSavedFolder(folder);
       setPassword('');

@@ -120,16 +120,16 @@ function formatShort(date?: Date): string {
         <div class="neo-latest-body">
           <SearchBox canEdit={isAuthed} total={total} categories={categories.map(category => ({ id: category.id, name: category.name }))} />
           <div id="tag-filter-bar" class="hidden neo-tag-filter"><span>筛选当前页</span><span id="tag-filter-name"></span><span id="tag-filter-count"></span><a id="tag-filter-all" href="#">在全站查看 →</a><button type="button" id="tag-filter-clear">清除筛选 ×</button></div>
-          <div id="post-grid" class="post-list">
-            {articles.map(article => <article class="post-row" data-tags={article.tags.join('|').toLowerCase()}>
+          <div id="post-grid" class="post-list" data-can-manage={isAuthed ? '1' : '0'}>
+            {articles.map(article => <article class:list={['post-row', { 'post-row--no-cover': !cardCoverUrl(article.cover, 480) }]} data-home-article-id={article.id} data-home-article-title={article.title} data-tags={article.tags.join('|').toLowerCase()}>
               <a href={'/blog/' + article.slug} class="neo-post-link" aria-label={'阅读《' + (article.title || '未命名') + '》'}></a>
-              <img class="neo-post-cover" src={cardCoverUrl(article.cover, 480) ?? '/images/neobrutalism/article-fallback.webp'} data-article-cover alt="" width="164" height="84" loading="lazy" />
+              {cardCoverUrl(article.cover, 480) && <img class="neo-post-cover" src={cardCoverUrl(article.cover, 480)} data-article-cover alt="" width="164" height="84" loading="lazy" />}
               <div class="post-row-main"><h3>{article.title || '未命名'}{article.encrypted && <span class="neo-encrypted" title="加密文章" aria-label="加密文章"><NeoIcon name="lock" size={15} /></span>}</h3>
                 <div class="neo-post-tags">{article.tags.slice(0, 4).map(tag => <button type="button" data-tag-filter={tag} class="post-tag" title={'只筛选当前页的「' + tag + '」'}>{tag}</button>)}{article.tags.length > 4 && <span>+{article.tags.length - 4}</span>}</div>
                 <p class="neo-post-summary">{article.summary}</p>
               </div>
               <div class="post-row-meta"><time datetime={article.updatedAt.toISOString()}>{formatShort(article.updatedAt)}</time><span class="neo-word-count"><NeoIcon name="file" size={15} />{article.encrypted ? '已加密' : countChars(article.contentLength) + ' 字'}</span></div>
-              {isAuthed && <a href={'/edit/' + article.id} class="post-row-edit" aria-label={'编辑《' + article.title + '》'} title="编辑文章"><NeoIcon name="more" size={20} /></a>}
+              {isAuthed && <a href={'/edit/' + article.id + '?edit=1'} class="post-row-edit" aria-label={'编辑《' + article.title + '》'} title="编辑文章"><NeoIcon name="more" size={20} /></a>}
             </article>)}
           </div>
           {total === 0 && <p class="neo-empty">还没有文章，新的故事即将开始。</p>}
@@ -240,6 +240,13 @@ function formatShort(date?: Date): string {
   document.addEventListener('astro:page-load', startCarousel);
   document.addEventListener('visibilitychange', () => document.hidden ? stopCarousel() : startCarousel());
   matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', startCarousel);
-  document.addEventListener('error', event => { const image = event.target; if (image instanceof HTMLImageElement && image.matches('[data-article-cover]') && !image.src.endsWith('/article-fallback.webp')) image.src = '/images/neobrutalism/article-fallback.webp'; }, true);
+  function recoverCover(image: HTMLImageElement): void {
+    if (image.matches('.neo-post-cover')) { image.closest('.post-row')?.classList.add('post-row--no-cover'); image.remove(); }
+    else if (image.matches('.landing-hero-bg')) { if (!image.src.endsWith('/images/neobrutalism/article-fallback.webp')) image.src = '/images/neobrutalism/article-fallback.webp'; else image.hidden = true; }
+  }
+  document.addEventListener('error', event => { if (event.target instanceof HTMLImageElement) recoverCover(event.target); }, true);
+  function clearBrokenCovers(): void { document.querySelectorAll<HTMLImageElement>('.neo-post-cover,.landing-hero-bg').forEach(image => { if (image.complete && image.naturalWidth === 0) recoverCover(image); }); }
+  clearBrokenCovers(); document.addEventListener('astro:page-load', clearBrokenCovers);
+  import '@/scripts/home-card-actions';
   startCarousel();
 </script>

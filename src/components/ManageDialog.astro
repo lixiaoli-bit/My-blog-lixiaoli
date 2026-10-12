@@ -199,6 +199,14 @@ const { githubEnabled } = Astro.props;
   function dialogEl(): HTMLDialogElement | null {
     return document.getElementById('manage-dialog') as HTMLDialogElement | null;
   }
+  let identityRequest: AbortController | null = null;
+  function closeManage(): void {
+    identityRequest?.abort(); identityRequest = null;
+    dialogEl()?.close();
+  }
+  document.addEventListener('astro:before-preparation', closeManage);
+  document.addEventListener('astro:before-swap', closeManage);
+  document.addEventListener('close', event => { if ((event.target as HTMLElement)?.id === 'manage-dialog') { identityRequest?.abort(); identityRequest = null; } }, true);
 
   /** 只显示指定分支（loading 为打开时的过渡态） */
   function showBranch(id: 'manage-loading' | 'manage-top' | 'manage-github' | 'manage-visitor' | 'manage-anonymous'): void {
@@ -232,7 +240,9 @@ const { githubEnabled } = Astro.props;
   async function openManage(): Promise<void> {
     const dlg = dialogEl();
     if (!dlg) return;
-    dlg.showModal();
+    identityRequest?.abort();
+    const request = new AbortController(); identityRequest = request;
+    if (!dlg.open) dlg.showModal();
     showBranch('manage-loading');
     setLogoutVisible(false);
     let data: {
@@ -242,11 +252,12 @@ const { githubEnabled } = Astro.props;
       error?: string;
     } = {};
     try {
-      const res = await fetch('/api/admin-auth/me');
+      const res = await fetch('/api/admin-auth/me', { signal: request.signal });
       data = (await res.json()) as typeof data;
     } catch {
       /* 网络错误按 anonymous 渲染，可走站主密码登录 */
     }
+    if (request.signal.aborted || identityRequest !== request || !dlg.open) return;
     switch (data.identity) {
       case 'top': {
         showBranch('manage-top');
@@ -311,12 +322,13 @@ const { githubEnabled } = Astro.props;
 
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
+    if (target.closest('#manage-dialog a[href]')) { closeManage(); return; }
     if (target.closest('#manage-entry-btn')) {
       void openManage();
       return;
     }
     if (target.closest('#manage-close')) {
-      dialogEl()?.close();
+      closeManage();
       return;
     }
     if (target.closest('#manage-apply-btn')) {
@@ -376,7 +388,7 @@ const { githubEnabled } = Astro.props;
     }
     // 点击遮罩关闭
     const dlg = dialogEl();
-    if (dlg && target === dlg && dlg.open) dlg.close();
+    if (dlg && target === dlg && dlg.open) closeManage();
   });
 
   /* 站主密码登录：成功后跳授权管理页 */
@@ -395,6 +407,7 @@ const { githubEnabled } = Astro.props;
       .then(async (res) => {
         const data = (await res.json()) as { error?: string };
         if (res.ok) {
+          closeManage();
           window.location.href = '/admin/auth';
           return;
         }

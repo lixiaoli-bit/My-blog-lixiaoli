@@ -205,3 +205,8 @@ html[data-ui-style='neobrutalism'] #settings-modal-nav .settings-nav-item.active
   .neo-admin-header { margin: 10px; padding: 12px; }.neo-admin-header nav a { font-size: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { .neo-home *, .neo-site-header * { animation: none !important; transition: none !important; }.neo-home [data-reveal] { opacity: 1; transform: none; } }
+
+/* Real covers are optional; text fills the vacant column. */
+.neo-home .post-row.post-row--no-cover { grid-template-columns:minmax(0,1fr) 128px; padding-left:16px; }
+@media(max-width:850px){.neo-home .post-row.post-row--no-cover {grid-template-columns:minmax(0,1fr) 106px;}}
+@media(max-width:600px){.neo-home .post-row.post-row--no-cover {grid-template-columns:minmax(0,1fr);padding:12px;} .neo-home .post-row.post-row--no-cover .post-row-meta {grid-column:1;}}

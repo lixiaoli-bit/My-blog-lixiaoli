@@ -12,6 +12,7 @@
 import { EditorView, WidgetType } from '@codemirror/view';
 import { captureEditorProjection } from './cm-columns-state';
 import { activeAiEditor, requestAiEdit, type FrozenAiSelection } from '../../lib/ai-editor-bridge';
+import { appendArticleViewMenu } from '../../lib/article-view-menu';
 
 /** 解析分隔行的对齐 */
 export type TableAlign = 'left' | 'center' | 'right';
@@ -405,8 +406,10 @@ export class TableWidget extends WidgetType {
     };
 
     let menu: HTMLDivElement | null = null;
+    let removeViewMenu: (() => void) | undefined;
     let pendingWhileMenuOpen = false;
     const closeMenu = (savePending = true): void => {
+      removeViewMenu?.(); removeViewMenu = undefined;
       menu?.remove();
       menu = null;
       document.removeEventListener('pointerdown', outsideMenu, true);
@@ -453,6 +456,7 @@ export class TableWidget extends WidgetType {
       menu.className = 'md-table-menu';
       menu.setAttribute('role', 'menu');
       menu.setAttribute('aria-label', '表格操作');
+      removeViewMenu = appendArticleViewMenu(menu, () => closeMenu());
       for (const entry of entries) {
         const button = document.createElement('button');
         button.type = 'button';

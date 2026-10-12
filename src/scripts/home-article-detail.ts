@@ -1,6 +1,6 @@
 /** 首页文章：共用文章详情骨架的目录、编辑与 TOC 命令适配器。 */
 import { buildDocTree, renderDocTree, type DocTreeItem } from '@/lib/doc-tree-render';
-import { installTreeContextMenu, type TreeCommand, type TreeTarget } from '@/lib/tree-context-menu';
+import { installTreeContextMenu, installArticleContextMenu, type TreeCommand, type TreeTarget } from '@/lib/tree-context-menu';
 import { setupArticleDetailRails } from '@/lib/article-detail-rails';
 import { renderTocTreeHtml } from '@/lib/toc-tree';
 import { confirmDanger } from '@/lib/confirm';
@@ -170,6 +170,14 @@ function setup(): void {
     focusVisibleEditor();
   }
   const tree = document.getElementById('doc-ltoc-inner');
+  const main = document.querySelector<HTMLElement>('[data-article-domain="home"] main');
+  if (main && !main.dataset.articleMenuBound) {
+    main.dataset.articleMenuBound = '1';
+    installArticleContextMenu(main, () => {
+      const node = readNodes().find(item => item.id === activeId());
+      return node ? { id: node.id, kind: 'article', title: node.title } : null;
+    }, command);
+  }
   if (tree && tree.dataset.homeMenuBound !== '1') {
     tree.dataset.homeMenuBound = '1';
     installTreeContextMenu(tree, command);
@@ -198,11 +206,14 @@ function setup(): void {
     newArticle.addEventListener('click', () => void command('create-article', { id: newArticle.dataset.parent || null, kind: newArticle.dataset.parent ? 'folder' : 'root', title: '' }));
   }
   const edit = document.getElementById('doc-inline-edit');
+  for (const [id, mode] of [['doc-inline-preview', 'preview'], ['doc-inline-source', 'source']] as const) {
+    const button = document.getElementById(id);
+    if (button && !button.dataset.bound) { button.dataset.bound = '1'; button.addEventListener('click', () => { void window.__docInlineEditor?.switchMode?.(mode); }); }
+  }
   if (edit && !edit.dataset.bound) {
     edit.dataset.bound = '1';
     edit.addEventListener('click', () => {
-      if (editing()) window.__docInlineEditor?.saveAndClose?.();
-      else window.__docInlineEditor?.open();
+      void window.__docInlineEditor?.switchMode?.('visual');
     });
   }
   const toc = document.getElementById('doc-toc-rail');

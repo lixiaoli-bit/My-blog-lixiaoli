@@ -50,6 +50,7 @@ import type { TocItem } from '@/lib/mdx-plugins';
 import { indexOfNthHeading, pickNearestViewAnchor } from '@/lib/view-anchor';
 import type { ViewAnchor } from '@/lib/view-anchor';
 import { instantScrollTo, prefetchDocNode, takePrefetchedDocNode, invalidatePrefetchedDocNode } from '@/lib/doc-viewport';
+import type { ArticleViewMode } from '@/lib/article-view-menu';
 
 /** 自动保存防抖（ms）：停顿 1.5s 即静默 PATCH */
 const AUTOSAVE_DEBOUNCE = 1500;
@@ -68,7 +69,9 @@ declare global {
     /** 供 .astro 页面脚本调用（ClientRouter SPA 下会重新挂载，故用 window 桥接） */
     __docInlineEditor?: {
       open: (mode?: 'visual' | 'source') => void;
-      saveAndClose?: () => void;
+      saveAndClose?: () => Promise<boolean>;
+      switchMode?: (mode: ArticleViewMode) => Promise<boolean>;
+      getMode?: () => ArticleViewMode;
       flush?: () => Promise<boolean>;
       openSearch?: () => boolean;
       /** 编辑态目录点击跳转：跳到第 nth 个（0 起）level 级标题；返回是否命中 */
@@ -335,6 +338,7 @@ export default function DocInlineEditor(): ReactElement {
   const [phase, setPhase] = useState<'idle' | 'loading' | 'saving'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [readFailed, setReadFailed] = useState(false);
+  const loadedSourceRef = useRef(false);
   /** 编辑器视口高度（px；打开时按正文高计算，超长文退化为可用屏高） */
   const [viewH, setViewH] = useState(0);
 
@@ -475,15 +479,16 @@ export default function DocInlineEditor(): ReactElement {
   /** 关闭编辑态：恢复正文、清理编辑态副作用（有未保存改动时先保存） */
   const closeEditor = useCallback(
     async (opts?: { discard?: boolean }) => {
-      if (aiLockedRef.current) return;
+      if (aiLockedRef.current) { setError('AI 正在编辑，请等待完成后切换视图'); return false; }
+      editorRef.current?.flushInputs();
       cancelOpening();
       window.clearTimeout(saveTimer.current);
       window.clearTimeout(tocTimer.current);
       while (dirtyRef.current && !opts?.discard) {
         const ok = await saveCoreRef.current();
-        if (!ok) return; // 保存失败：保持编辑态，error 已提示
+        if (!ok) return false; // 保存失败：保持编辑态，error 已提示
       }
-      if (!opts?.discard && titleSessionRef.current && !(await titleSessionRef.current.flush())) return;
+      if (!opts?.discard && titleSessionRef.current && !(await titleSessionRef.current.flush())) return false;
       titleSessionRef.current?.close(Boolean(opts?.discard));
       titleSessionRef.current = null;
       if (opts?.discard && saveSessionRef.current) discardArticleField(saveSessionRef.current.url, 'content');
@@ -507,6 +512,8 @@ export default function DocInlineEditor(): ReactElement {
       if (art) art.style.display = '';
       if (grid) grid.setAttribute('data-editing', 'false');
       setOpen(false);
+      setReadFailed(false);
+      saveSessionRef.current = null;
       syncEntryButtons(false);
       setError(null);
       dirtyRef.current = false;
@@ -644,16 +651,14 @@ export default function DocInlineEditor(): ReactElement {
   );
 
   /** 保存并退出（入口按钮调用） */
-  const handleSaveAndClose = useCallback(() => {
-    void (async () => {
-      window.clearTimeout(saveTimer.current);
-      if (dirtyRef.current) {
-        const ok = await saveCoreRef.current();
-        if (!ok) return; // 保存失败：留在编辑态 + error 提示
-      }
-      await closeEditor();
-    })();
-  }, [closeEditor]);
+  const handleSaveAndClose = useCallback(async (): Promise<boolean> => (await closeEditor()) !== false, [closeEditor]);
+  const saveInPlace = useCallback(async (): Promise<boolean> => {
+    editorRef.current?.flushInputs(); window.clearTimeout(saveTimer.current);
+    if (!(await saveCoreRef.current())) return false;
+    if (titleSessionRef.current && !(await titleSessionRef.current.flush())) return false;
+    showSaveFeedback('正文已保存', 'saved');
+    return true;
+  }, []);
 
 
   /**
@@ -734,12 +739,20 @@ export default function DocInlineEditor(): ReactElement {
   /** 打开：即时反馈 → 拉源码（预取命中则零等待）→ 计算视口高 → 原位替换正文 */
   const openEditor = useCallback(async (mode: 'visual' | 'source' = 'visual') => {
     const id = readActiveNodeId();
-    if (!id || busyRef.current || aiLockedRef.current) return;
-    if (open) {
+    if (!id) return false;
+    if (aiLockedRef.current) { setError('AI 正在编辑，请等待完成后切换视图'); return false; }
+    if (busyRef.current) cancelOpening();
+    if (open && loadedSourceRef.current) {
       editorRef.current?.flushInputs();
+      if (mode === 'visual' && !visualModule) {
+        try { setVisualModule(await import('../admin/cm-wysiwyg')); }
+        catch { setError('可视编辑器加载失败，可以切换到源码模式或返回预览'); return false; }
+      }
       setSourceMode(mode === 'source');
+      setReadFailed(false);
+      setError(null);
       syncEntryButtons(true, mode);
-      return;
+      return true;
     }
     setSourceMode(mode === 'source');
     busyRef.current = true;
@@ -749,6 +762,9 @@ export default function DocInlineEditor(): ReactElement {
     clearAlignment();
     setReadFailed(false);
     savedRef.current = false;
+    loadedSourceRef.current = false;
+    dirtyRef.current = false;
+    saveSessionRef.current = null;
 
     const art = document.querySelector<HTMLElement>('main article.prose');
     /** 正文父容器：正文隐藏期间用它撑住文档高度（try / catch 两处都要撤，故提到外面） */
@@ -780,7 +796,6 @@ export default function DocInlineEditor(): ReactElement {
         if (!res.ok || typeof content !== 'string') throw new Error(d.error ?? '读取正文失败');
         text = content;
       }
-      const readyVisualModule = await import('../admin/cm-wysiwyg');
       if (!isHomeArticle()) invalidatePrefetchedDocNode(id);
       await registerArticleBaseline(articleApiUrl(id), text);
       if (controller.signal.aborted || openingRef.current !== opening || !hostRef.current?.isConnected || readActiveNodeId() !== id) return;
@@ -789,9 +804,11 @@ export default function DocInlineEditor(): ReactElement {
       saveQueueRef.current = null;
       contentRef.current = text;
       saveSessionRef.current = { id, url: articleApiUrl(id), content: text };
+      loadedSourceRef.current = true;
       setContent(text);
-      setVisualModule(readyVisualModule);
       dirtyRef.current = pendingContent !== null;
+      if (mode !== 'source') setVisualModule(await import('../admin/cm-wysiwyg'));
+      if (controller.signal.aborted || openingRef.current !== opening) return false;
       savedRef.current = false;
       // 编辑视口高：短文 0 = 高度随内容（auto，无滚动条）；超长文取可用屏高（编辑器内滚动）
       setViewH(fit ? 0 : avail);
@@ -805,18 +822,21 @@ export default function DocInlineEditor(): ReactElement {
       tocSnapshotRef.current = collectTocSnapshot();
       setPhase('idle');
       setOpen(true);
+      return true;
     } catch (err) {
       if (controller.signal.aborted || openingRef.current !== opening || !hostRef.current?.isConnected || readActiveNodeId() !== id) return;
       setReadFailed(true);
       setError(err instanceof Error && err.name === 'TimeoutError' ? '读取正文超时，请退出编辑后重试' : err instanceof Error ? err.message : '读取正文失败');
       // 读取失败只显示错误与退出入口，不挂载可保存的空编辑器，避免覆盖原文。
       if (holder) holder.style.minHeight = '';
-      if (art) art.style.display = 'none';
+      if (art) art.style.display = '';
+      if (hostRef.current) { hostRef.current.style.visibility = ''; hostRef.current.style.position = ''; hostRef.current.style.width = ''; }
       fitRef.current = true;
       setViewH(0);
       setOpen(true);
       syncEntryButtons(true, sourceModeRef.current ? 'source' : 'visual');
       setPhase('idle');
+      return false;
     } finally {
       if (openingRef.current === opening) {
         openingRef.current = null;
@@ -825,7 +845,7 @@ export default function DocInlineEditor(): ReactElement {
         document.getElementById('doc-switch-progress')?.classList.add('hidden');
       }
     }
-  }, [open, clearAlignment]);
+  }, [open, clearAlignment, cancelOpening, visualModule]);
 
   /** 挂载期向页面脚本暴露 open / saveAndClose / jumpToHeading */
   useEffect(() => {
@@ -860,6 +880,8 @@ export default function DocInlineEditor(): ReactElement {
     window.__docInlineEditor = {
       open: mode => void openEditor(mode),
       saveAndClose: handleSaveAndClose,
+      switchMode: async mode => mode === 'preview' ? handleSaveAndClose() : (await openEditor(mode)) !== false,
+      getMode: () => open ? sourceModeRef.current ? 'source' : 'visual' : 'preview',
       flush: async () => {
         editorRef.current?.flushInputs(); window.clearTimeout(saveTimer.current);
         if (saveSessionRef.current && !(await saveCoreRef.current())) return false;
@@ -959,10 +981,10 @@ export default function DocInlineEditor(): ReactElement {
     const status = document.getElementById('article-save-status');
     if (!open) { if (status) status.hidden = true; return; }
     showSaveFeedback(
-      error ? '保存或读取失败' : phase === 'loading' ? '正在读取…' : phase === 'saving' ? '正在保存…' : dirtyRef.current ? '待自动保存' : '正文已保存',
+      error ? readFailed ? '读取或初始化失败，请重试或返回预览' : error : phase === 'loading' ? '正在读取…' : phase === 'saving' ? '正在保存…' : dirtyRef.current ? '待自动保存' : '正文已保存',
       error ? 'error' : phase === 'saving' ? 'saving' : dirtyRef.current ? 'pending' : 'saved',
     );
-  }, [open, phase, error]);
+  }, [open, phase, error, readFailed]);
 
   return (
     <div ref={hostRef} className={open ? 'doc-ie-host' : 'hidden'}>
@@ -970,21 +992,22 @@ export default function DocInlineEditor(): ReactElement {
         <div className="doc-ie-inner relative">
           {sourceMode && !readFailed && <div className="mb-3 flex flex-wrap items-center gap-2 border-2 border-border bg-background px-3 py-2 text-xs shadow-[3px_3px_0_var(--neo-orange)]" role="toolbar" aria-label="源码模式工具">
             <span className="mr-auto font-semibold">Markdown 源码</span>
+            <button type="button" className="rounded border border-border px-2.5 py-1.5" disabled={phase === 'saving'} onClick={() => { void saveInPlace(); }}>{phase === 'saving' ? '正在保存…' : '保存源码'}</button>
             <button type="button" className="rounded border border-border px-2.5 py-1.5" onClick={() => void copySource()}>复制源码</button>
             <button type="button" className="rounded border border-border px-2.5 py-1.5" title="包含 Markdown 和真实内容块索引，供导图 JSON 技能使用" disabled={sourceBusy || phase === 'loading'} onClick={() => void exportMapSource()}>{sourceBusy ? '准备素材…' : '下载导图素材'}</button>
           </div>}
           {/* 编辑器区：正文原位替换（无卡片/无边框/无工具条），高度按内容策略计算 */}
           <div className="doc-ie-view" style={{ height: autoHeight ? 'auto' : `${viewH}px` }}>
-            {phase === 'loading' || !visualModule ? (
+            {readFailed ? null : phase === 'loading' || (!sourceMode && !visualModule) ? (
               <p className="px-1 py-6 text-sm text-muted-foreground">正在读取正文…</p>
-            ) : readFailed ? null : (
+            ) : (
               <MarkdownEditor
                 foldHeadings
                 documentContextMenu
                 ref={editorRef}
                 initialContent={content}
                 onChange={handleContentChange}
-                onSave={() => handleSaveAndClose()}
+                onSave={() => { if (sourceModeRef.current) void saveInPlace(); else void handleSaveAndClose(); }}
                 wysiwyg
                 sourceMode={sourceMode}
                 initialWysiwyg={visualModule ?? undefined}
@@ -1008,7 +1031,7 @@ export default function DocInlineEditor(): ReactElement {
           {error && (
             <p className="mt-2 px-1 text-xs text-destructive" role="alert">
               {error}
-              {!readFailed && <button type="button" className="ml-3 rounded-md border border-current px-3 py-2" disabled={phase === 'saving'} onClick={() => { void saveCoreRef.current(); }}>重新保存</button>}
+              {readFailed ? <><button type="button" className="ml-3 rounded-md border border-current px-3 py-2" onClick={() => { void openEditor(sourceMode ? 'source' : 'visual'); }}>重新读取</button><button type="button" className="ml-3 rounded-md border border-current px-3 py-2" onClick={() => { void handleSaveAndClose(); }}>返回预览</button></> : <button type="button" className="ml-3 rounded-md border border-current px-3 py-2" disabled={phase === 'saving'} onClick={() => { void saveCoreRef.current(); }}>重新保存</button>}
             </p>
           )}
 

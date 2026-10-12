@@ -54,12 +54,20 @@ async function send(key: string, keepalive = false): Promise<unknown> {
     for (let item = read(key); item; item = read(key)) {
       const stored = storedValue(key);
       const body = JSON.stringify(item.body);
-      const response = await fetch(item.url, {
-        method: 'PATCH', headers: { 'content-type': 'application/json' }, body,
-        keepalive: keepalive && new TextEncoder().encode(body).length < 60000,
-        signal: AbortSignal.timeout(15000),
-      });
-      if (!response.ok) throw new Error(response.status === 409 ? '正文已在其他窗口修改，当前改动已暂存，请处理冲突后再保存' : response.status === 401 || response.status === 403 ? '登录已过期，重新登录后会继续自动保存' : '自动保存暂时失败，修改已暂存并会重试');
+      let response: Response;
+      try {
+        response = await fetch(item.url, {
+          method: 'PATCH', headers: { 'content-type': 'application/json' }, body,
+          keepalive: keepalive && new TextEncoder().encode(body).length < 60000,
+          signal: AbortSignal.timeout(15000),
+        });
+      } catch (cause) {
+        throw new Error(cause instanceof Error && cause.name === 'TimeoutError' ? '保存超时，修改已暂存，请重试' : '网络连接失败，修改已暂存，请重试');
+      }
+      if (!response.ok) {
+        const failure = await response.json().catch(() => ({})) as { error?: unknown };
+        throw new Error(response.status === 409 ? '正文已在其他窗口修改，当前改动已暂存，请处理冲突后再保存' : response.status === 401 || response.status === 403 ? '登录已过期，重新登录后会继续自动保存' : `自动保存失败（HTTP ${response.status}）：${typeof failure.error === 'string' ? failure.error : '服务器暂时不可用'}；修改已暂存，请重试`);
+      }
       result = await response.json().catch(() => ({}));
       const hash=(result as {contentHash?:string}).contentHash;
       if(hash&&'content' in item.body) {

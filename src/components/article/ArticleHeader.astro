@@ -9,6 +9,7 @@ const { article } = Astro.props;
 
 /* ===== Imports ===== */
 import { countChars, readingTime } from '@/lib/reading';
+import ArticleCover from './ArticleCover.astro';
 import { resolveSource, getBinding } from '@/lib/mindmap-service';
 import { listMindmaps } from '@/lib/mindmaps';
 let showMap = false;
@@ -69,3 +70,4 @@ function formatShort(date: Date): string {
     )
   }
 </header>
+<ArticleCover articleId={article.id} title={article.title} cover={article.cover} />

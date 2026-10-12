@@ -3757,3 +3757,5 @@ g.smm-node-highlight rect {
 .cm-visual-directive .md-collapse-panel-body { padding: .2rem .6rem .6rem; border-top: 1px solid var(--color-border); }
 @media (max-width: 700px) { .cm-visual-directive .md-grid { grid-template-columns: repeat(min(var(--md-grid-cols), 2), minmax(0, 1fr)); } }
 @media (max-width: 430px) { .cm-visual-directive .md-grid { grid-template-columns: 1fr; } }
+
+.article-view-submenu[hidden] {display:none;}

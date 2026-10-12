@@ -549,8 +549,7 @@ const folderOptionsJson = JSON.stringify(folderOptions);
     const editing = grid?.dataset.editing === 'true';
     const bridge = window.__docInlineEditor;
     if (bridge) {
-      if (preview) { if (editing) bridge.saveAndClose?.(); }
-      else bridge.open(sourceMode ? 'source' : 'visual');
+      void bridge.switchMode?.(preview ? 'preview' : sourceMode ? 'source' : 'visual');
       return;
     }
     // 岛尚未水合：保持阅读正文稳定，桥就位后由编辑器原位接管。
@@ -562,8 +561,7 @@ const folderOptionsJson = JSON.stringify(folderOptions);
         else console.warn('[doc] 编辑器尚未就绪，请稍后再试');
         return;
       }
-      if (preview) { if (editing) b.saveAndClose?.(); }
-      else b.open(sourceMode ? 'source' : 'visual');
+      void b.switchMode?.(preview ? 'preview' : sourceMode ? 'source' : 'visual');
     };
     tryBridge();
   });

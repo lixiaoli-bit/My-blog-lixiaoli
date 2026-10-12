@@ -844,7 +844,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(fun
     writeStatsRef.current?.(view.state);
     // 所见即所得扩展会异步注入；此时通知宿主会先展示源码，再突然切成
     // Widget，原位编辑入口因此出现一次可见的布局跳动。
-    if (!wysiwyg || initialWysiwyg) onReadyRef.current?.();
+    if (!wysiwyg || initialWysiwyg || sourceModeRef.current) onReadyRef.current?.();
 
     // 编辑器快捷键：拉取用户自定义（设置页可改），热替换键位；失败保持 Obsidian 默认
     void (async () => {
@@ -884,6 +884,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(fun
         })
         .catch((error: unknown) => {
           if (viewRef.current !== view) return;
+          if (sourceModeRef.current) return; // Source editing remains usable without the visual chunk.
           if (onLoadErrorRef.current) onLoadErrorRef.current(error instanceof Error ? error : new Error(String(error)));
           else onReadyRef.current?.();
         });

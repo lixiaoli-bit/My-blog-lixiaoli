@@ -1,0 +1,25 @@
+---
+import '@/styles/article-workspace.css';
+interface Props { cover?: string | null; articleId: string; title: string; }
+const { cover, articleId, title } = Astro.props;
+const url = cover?.trim() || undefined;
+---
+<figure class="article-detail-cover" data-article-cover-block data-cover-for={articleId} hidden={!url}>
+  <img src={url} data-article-cover alt={`${title}的封面`} width="1200" height="675" decoding="async" />
+</figure>
+<script>
+  window.addEventListener('article:cover-changed', event => {
+    const { id, url } = (event as CustomEvent<{ id: string; url: string }>).detail;
+    for (const block of document.querySelectorAll<HTMLElement>('[data-article-cover-block]')) {
+      if (block.dataset.coverFor !== id) continue;
+      const image = block.querySelector<HTMLImageElement>('img');
+      block.hidden = !url?.trim();
+      if (image) { if (url?.trim()) image.src = url.trim(); else image.removeAttribute('src'); }
+    }
+  });
+  document.addEventListener('error', event => {
+    if (event.target instanceof HTMLImageElement && event.target.matches('[data-article-cover-block] img')) event.target.closest<HTMLElement>('[data-article-cover-block]')!.hidden = true;
+  }, true);
+  function hideBrokenCovers(): void { document.querySelectorAll<HTMLImageElement>('[data-article-cover-block] img[src]').forEach(image => { if (image.complete && image.naturalWidth === 0) image.closest<HTMLElement>('[data-article-cover-block]')!.hidden = true; }); }
+  hideBrokenCovers(); document.addEventListener('astro:page-load', hideBrokenCovers);
+</script>

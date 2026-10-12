@@ -63,7 +63,7 @@ const settingsArticle = {
 <BaseLayout title={`${article.title || '未命名文章'} · 文章编辑`} description={article.summary || '编辑文章'}>
   <ArticleDetailShell
     domain="home" authed={true} treeLabel="全部文章" treeHtml={treeHtml}
-    title={article.title || '未命名文章'} articleHtml={html} tocHtml={tocHtml}
+    title={article.title || '未命名文章'} articleHtml={html} tocHtml={tocHtml} cover={article.cover} articleId={article.id}
     tocState={deferRender ? 'loading' : rendered?.toc.length ? 'ready' : 'empty'}
     deferArticleId={deferRender ? article.id : undefined} emptyText="暂无文章。"
   >
@@ -76,6 +76,8 @@ const settingsArticle = {
       <button id="home-article-settings" type="button" class="mt-2 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:text-primary">文章设置</button>
       <button id="doc-inline-edit" type="button" class="mt-2 shrink-0 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary">编辑</button>
       <button data-map-open type="button" class="mt-2">思维导图</button>
+      <button id="doc-inline-preview" type="button" aria-pressed="true" class="mt-2 rounded-md border border-border px-2.5 py-1 text-xs text-primary">预览</button>
+      <button id="doc-inline-source" type="button" aria-pressed="false" class="mt-2 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground">源码模式</button>
       <ExportMenu mdUrl={`/api/export/article/${encodeURIComponent(article.slug)}`} class="mt-1.5" />
       {isOwner && <ArticleCoverGenerator client:load articleId={article.id} />}
     </Fragment>

@@ -7,6 +7,7 @@ import type { MarkdownTemplate } from '../../lib/markdown-context-templates';
 import { freezeAiSelection, openAiSelection } from './cm-ai-selection';
 import { interactiveTemplate, readInteractiveFile } from '../../lib/interactive-html';
 import { prepareInteractiveDocument } from '../../lib/interactive-html-document';
+import { articleViewMenuItems } from '../../lib/article-view-menu';
 
 type CustomPanel = 'callout' | 'gallery' | 'tabs';
 interface MenuItem {
@@ -198,6 +199,7 @@ export class MarkdownContextMenu {
       ] },
     ];
     return [
+      ...(articleViewMenuItems().length ? [{ label: '切换视图', children: articleViewMenuItems() }] : []),
       ...(aiSelection ? [{ label: '使用 AI 编辑', action: () => { if (this.valid(context)) openAiSelection(aiSelection); } }] : []),
       ...(selected ? [code] : []),
       { label: '新增链接', action: () => this.link(context) },

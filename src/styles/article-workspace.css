@@ -161,3 +161,5 @@ body:has(.article-workspace) [role='menu'] { background:var(--neo-paper); border
  :is(.article-workspace,.neo-reader) .article-paper { border:0; box-shadow:none; padding:0; }
  .article-workspace .article-detail-layout,.neo-reader { padding:0; max-width:none; }
 }
+
+.article-detail-cover {margin:20px 0 0;} .article-detail-cover[hidden], .article-view-submenu[hidden] {display:none;} .article-detail-cover img {display:block;width:100%;max-height:420px;aspect-ratio:16/9;object-fit:cover;border:2px solid var(--neo-ink);border-radius:12px;}

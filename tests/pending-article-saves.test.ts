@@ -8,10 +8,15 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('silent article navigation saves', () => {
+  it('shows the HTTP status and server reason while retaining a rejected snapshot', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: '正文过长，未保存' }), { status: 413 })));
+    await expect(saveArticleSnapshot('/api/articles/rejected', { content: 'retained' })).rejects.toThrow('HTTP 413');
+    expect(pendingArticleField('/api/articles/rejected', 'content')).toBe('retained');
+  });
   it('retains a failed save and retries it after navigation', async () => {
     const request = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(new Response('{}'));
     vi.stubGlobal('fetch', request);
-    await expect(saveArticleSnapshot('/api/articles/one', { content: 'latest' })).rejects.toThrow('offline');
+    await expect(saveArticleSnapshot('/api/articles/one', { content: 'latest' })).rejects.toThrow('网络连接失败，修改已暂存');
     expect(pendingArticleField('/api/articles/one', 'content')).toBe('latest');
     await flushPendingArticleSaves();
     expect(pendingArticleField('/api/articles/one', 'content')).toBeNull();
