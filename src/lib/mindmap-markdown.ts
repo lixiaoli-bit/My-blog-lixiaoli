@@ -1,4 +1,6 @@
 import DOMPurify from "dompurify";
+import { openInteractivePreview } from './interactive-html-client';
+import type { InteractiveBlock } from './interactive-html';
 import { KATEX_ALLOWED_TAGS } from "./math-sanitize";
 import { walkMap, type MapDocument, type MapNode } from "./mindmap-types";
 
@@ -16,7 +18,7 @@ interface MarkdownEngine {
   getData(full: true): unknown;
   render(): void;
 }
-type Result = { uid: string; text: string; html?: string; error?: string };
+type Result = { uid: string; text: string; html?: string; error?: string; interactiveBlocks?: InteractiveBlock[] };
 // Plain labels retain the engine's text rendering and inline editor.
 export function hasNodeMarkdown(text: string): boolean {
   return /[\n`\uFF40\u02CB\u2035*_~$<>\[\]#|={}+]|:::|https?:\/\/|\bwww\.|^\s*(- |\d+[.)] )|\\[()[\]]/.test(
@@ -26,7 +28,7 @@ export function hasNodeMarkdown(text: string): boolean {
 
 /** HTML is ephemeral; data.text remains the only stored name. */
 export class MindmapMarkdown {
-  private cache = new Map<string, { html?: string; error?: string }>();
+  private cache = new Map<string, { html?: string; error?: string; interactiveBlocks?: InteractiveBlock[] }>();
   private pending = new Set<string>();
   private inflight = new Set<string>();
   private states = new Map<string, { text: string; html: string }>();
@@ -43,6 +45,7 @@ export class MindmapMarkdown {
     private mapId: string,
     private notify: (message: string) => void,
     private onInitialLayout: () => void = () => {},
+    private linkedInteractive: (data: MapNode['data']) => InteractiveBlock | undefined = () => undefined,
   ) {
     this.observer = new ResizeObserver((entries) => {
       for (const { target } of entries) {
@@ -88,6 +91,19 @@ export class MindmapMarkdown {
   }
   create(node: MarkdownNode): HTMLElement | null {
     const { text, uid } = node.getData();
+    const linked = this.linkedInteractive(node.getData());
+    if (uid && linked && !hasNodeMarkdown(text)) {
+      const root = document.createElement('div'); root.className = 'map-node-markdown prose';
+      this.size(root, node); root.dataset.mapNode = uid; root.dataset.sourceText = text;
+      const title = document.createElement('strong'); title.textContent = text;
+      const button = document.createElement('button'); button.type = 'button'; button.textContent = '打开演示'; button.style.cssText = 'display:block;margin-top:5px;border:1px solid currentColor;padding:3px 6px;background:transparent;color:inherit;cursor:pointer';
+      button.dataset.interactiveEntry = '';
+      root.append(title, button);
+      for (const event of ['mousedown','pointerdown','dblclick']) button.addEventListener(event, value => value.stopPropagation());
+      button.addEventListener('click', event => { event.stopPropagation(); openInteractivePreview(linked); });
+      button.addEventListener('keydown', event => event.stopPropagation());
+      return root;
+    }
     if (!uid || !hasNodeMarkdown(text)) return null;
     const result = this.cache.get(text);
     if (!result?.html) return null;
@@ -105,6 +121,24 @@ export class MindmapMarkdown {
     root.style.setProperty("--tw-prose-headings", root.style.color);
     const previous = this.states.get(uid);
     root.innerHTML = previous?.text === text ? previous.html : result.html;
+    root.querySelectorAll('[data-interactive-entry]').forEach(element => element.remove());
+    if (linked) {
+      const button = document.createElement('button'); button.type = 'button'; button.textContent = '打开演示';
+      button.dataset.interactiveEntry = ''; button.style.cssText = 'display:block;margin-top:5px;border:1px solid currentColor;padding:3px 6px;background:transparent;color:inherit;cursor:pointer';
+      root.append(button);
+    }
+    // Canvas cards are static entries. Never mount a runner in foreignObject.
+    root.querySelectorAll<HTMLElement>('[data-interactive-card]').forEach((card, index) => {
+      const block = result.interactiveBlocks?.[index];
+      if (!block) return;
+      card.querySelectorAll('[data-interactive-payload],details,[data-interactive-stage]').forEach(element => element.remove());
+      const actions = card.querySelector('.interactive-html-actions');
+      if (actions) {
+        const button = document.createElement('button'); button.type = 'button'; button.textContent = '打开演示';
+        button.dataset.interactiveOpen = String(index); actions.replaceChildren(button);
+      }
+      card.querySelector('[data-interactive-status]')?.replaceChildren(block.error || '交互演示');
+    });
     if (previous?.text !== text) {
       const ids = new Map<string, string>();
       root.querySelectorAll<HTMLElement>("[id]").forEach((element) => {
@@ -147,6 +181,16 @@ export class MindmapMarkdown {
       const target = event.target instanceof Element ? event.target : null;
       if (!target || !control(target)) return;
       event.stopPropagation();
+      const interactive = target.closest<HTMLElement>('[data-interactive-open]');
+      if (target.closest('[data-interactive-entry]') && linked) {
+        event.preventDefault(); openInteractivePreview(linked); return;
+      }
+      if (interactive) {
+        event.preventDefault();
+        const block = this.cache.get(text)?.interactiveBlocks?.[Number(interactive.dataset.interactiveOpen)];
+        if (block) openInteractivePreview(block);
+        return;
+      }
       const link = target.closest<HTMLAnchorElement>('a[href^="#"]');
       if (link) {
         event.preventDefault();
@@ -332,7 +376,7 @@ export class MindmapMarkdown {
               FORBID_TAGS: ["script", "iframe", "object", "embed", "form"],
             })
           : undefined;
-        this.cache.set(node.text, { html, error: node.error });
+        this.cache.set(node.text, { html, error: node.error, interactiveBlocks: node.interactiveBlocks });
         if (node.error) this.notify(node.error);
       }
       if (this.initialLayout) this.onInitialLayout();

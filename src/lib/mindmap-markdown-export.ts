@@ -156,6 +156,14 @@ export function styleMarkdownExport(svg: SVGElement, canvas: HTMLElement) {
       for (const property of properties)
         target.style.setProperty(property, style.getPropertyValue(property));
     });
+    clone.querySelectorAll('[data-interactive-entry],[data-interactive-open]').forEach(entry => {
+      entry.textContent = '交互演示';
+    });
+    clone.querySelectorAll('iframe,template[data-interactive-payload]').forEach(entry => entry.remove());
+    for (const element of [clone, ...clone.querySelectorAll('*')]) {
+      element.removeAttribute('data-source-text');
+      element.removeAttribute('data-callout-source');
+    }
     // Embedding fonts inside XHTML keeps SVG foreignObject rendering portable.
     if (!fontsAdded) {
       const style = document.createElement("style");

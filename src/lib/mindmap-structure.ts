@@ -141,7 +141,7 @@ export function assembleArticleCandidate(
       const destination =
         parent && owner === hint ? parent : containers.get(owner)!;
       const isCard =
-        sourceBlock && ["callout", "blockquote"].includes(sourceBlock.kind);
+        sourceBlock && ["callout", "blockquote", "interactive-html"].includes(sourceBlock.kind);
       const key = ref
         ? isCard
           ? `card:${ref.blockId}`
@@ -181,7 +181,7 @@ export function assembleArticleCandidate(
   let supplementedCards = 0;
   for (const block of source.blocks) {
     if (
-      !["callout", "blockquote"].includes(block.kind) ||
+      !["callout", "blockquote", "interactive-html"].includes(block.kind) ||
       linked.has(`card:${block.blockId}`)
     )
       continue;

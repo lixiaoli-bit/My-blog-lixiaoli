@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { MapNode, MapSource, SourceBlock } from "./mindmap-types";
 import { reference, MapError } from "./mindmap-service";
+import { summarizeInteractiveHtml } from './mdx/interactive-html';
 type Candidate = { text: string; blockId?: string; children?: Candidate[] };
 const candidate: z.ZodType<Candidate> = z.lazy(() =>
   z.object({
@@ -134,7 +135,7 @@ export function prepareCandidate(
   collect(node);
   const missing = source.blocks.filter(
     (block) =>
-      ["callout", "blockquote"].includes(block.kind) &&
+      ["callout", "blockquote", "interactive-html"].includes(block.kind) &&
       !represented.has(block.blockId),
   );
   if (missing.length) {
@@ -176,7 +177,9 @@ export function sourceChunks(
   const chunks: SourceBlock[][] = [];
   let group: SourceBlock[] = [],
     size = 0;
-  for (const block of blocks) {
+  for (const input of blocks) {
+    const markdown = input.kind === 'interactive-html' ? `交互演示：${input.title}。通过此内容块关联原文演示，不分析页面脚本。` : summarizeInteractiveHtml(input.markdown);
+    const block = markdown === input.markdown ? input : { ...input, markdown };
     if (block.kind === "heading" && (block.level ?? 1) <= 2 && group.length) {
       chunks.push(group);
       group = [];

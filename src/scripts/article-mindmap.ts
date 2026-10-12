@@ -164,7 +164,7 @@ function decorate() {
       if (!block) return;
       element.dataset.sourceBlock = block.blockId;
       if (
-        !["callout", "blockquote"].includes(block.kind) ||
+        !["callout", "blockquote", "interactive-html"].includes(block.kind) ||
         !activeSource!.canEdit ||
         element.querySelector(
           ":scope > .map-card-tools, :scope > summary > .map-card-tools",

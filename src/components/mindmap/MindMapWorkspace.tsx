@@ -21,6 +21,10 @@ import {
   styleMarkdownExport,
 } from "@/lib/mindmap-markdown-export";
 import { readState, writeState } from "@/lib/theme";
+import { collectInteractiveBlocks } from '@/lib/mdx/interactive-html';
+import { mindmapOutline } from '@/lib/mindmap-outline';
+import { openInteractivePreview } from '@/lib/interactive-html-client';
+import type { InteractiveBlock } from '@/lib/interactive-html';
 import {
   reuseSourceWindow,
   flushSourceWindows,
@@ -198,6 +202,21 @@ export default function MindMapWorkspace({
     cancelAi = useRef<AbortController | null>(null),
     current = useRef(map);
   current.current = map;
+  const interactiveCache = useRef(new Map<string, InteractiveBlock>());
+  const linkedInteractive = (data: MapNode['data']) => {
+    const ref = data.sourceRef, source = current.current?.source;
+    if (!ref || !source || !sameSource(ref, source)) return;
+    const block = source.blocks.find(item => item.blockId === ref.blockId && item.fingerprint === ref.fingerprint && item.kind === 'interactive-html');
+    if (!block) return;
+    const key = `${source.contentHash}:${block.blockId}`;
+    if (!interactiveCache.current.has(key)) {
+      const content = collectInteractiveBlocks(block.markdown)[0];
+      if (!content) return;
+      if (interactiveCache.current.size > 30) interactiveCache.current.clear();
+      interactiveCache.current.set(key, content);
+    }
+    return interactiveCache.current.get(key);
+  };
   const load = async (primaryId?: string) => {
     try {
       setError("");
@@ -524,7 +543,7 @@ export default function MindMapWorkspace({
           : map.data;
       const renderer = new MindmapMarkdown(map.id, setError, () => {
         fitMode = "if-needed";
-      });
+      }, linkedInteractive);
       markdown.current = renderer;
       mm = new core.default({
         el: canvas.current,
@@ -1051,6 +1070,11 @@ export default function MindMapWorkspace({
         await prepareMarkdownExport(canvas.current!);
       if (type === "json")
         download(engine.current.getData(true), `${map.title}.json`);
+      else if (type === 'md') {
+        const url = URL.createObjectURL(new Blob([mindmapOutline(engine.current.getData(true) as MapDocument, data => !!linkedInteractive(data))], {type:'text/markdown;charset=utf-8'}));
+        const link = document.createElement('a'); link.href = url; link.download = `${map.title}.md`; link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
       else await engine.current.export(type, true, map.title);
     } catch (error) {
       setError(error instanceof Error ? error.message : "导出失败，请重试");
@@ -1525,6 +1549,9 @@ export default function MindMapWorkspace({
                   删除主题
                 </button>
                 <h3>原文来源</h3>
+                {linkedInteractive(selected.getData()) && <button onClick={() => {
+                  const block = linkedInteractive(selected.getData()); if (block) openInteractivePreview(block);
+                }}>打开演示</button>}
                 <p>{selected.getData().sourceRef?.quote || "没有关联引用"}</p>
                 {selected.getData().sourceRef && (
                   <button
