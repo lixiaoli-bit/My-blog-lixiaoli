@@ -23,7 +23,7 @@ import type { PreviewDecoration } from './cm-preview-cache';
 import type { EditorState, Extension } from '@codemirror/state';
 import { columnBlocks } from './cm-columns-state';
 import { scanMarkdownCallouts } from '../../lib/markdown-callouts';
-import { scanVisualDirectives } from '../../lib/markdown-visual-directives';
+import { visualBlocks } from './cm-visual-directives-state';
 import { InteractiveCodeWidget } from './cm-interactive-html';
 import { appendMarkdownInline, markdownInlineSpans } from './cm-markdown-inline';
 
@@ -144,7 +144,7 @@ function computeBase(doc: EditorState['doc']): PreviewDecoration[] {
 
   // 被代码块占用的行（行内/标题 pass 跳过）
   const blockedLines = new Set<number>();
-  for (const block of [...scanMarkdownCallouts(doc.toString()), ...scanVisualDirectives(doc.toString())]) {
+  for (const block of [...scanMarkdownCallouts(doc.toString()), ...visualBlocks(doc)]) {
     for (let line = doc.lineAt(block.from).number; line <= doc.lineAt(block.to).number; line += 1) blockedLines.add(line - 1);
   }
   for (const block of columnBlocks(doc)) {

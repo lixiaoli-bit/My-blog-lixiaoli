@@ -13,6 +13,7 @@ if (!name || !/^[\w-]+$/.test(name)) throw Error('Pass a portable directory insi
 const baseline = process.argv.includes('--baseline');
 const nativeTest = process.argv.includes('--native-drag');
 const visibleScroll = process.argv.includes('--visible-scroll');
+const nestedInput = process.argv.includes('--nested-input');
 const portable = path.join(root, 'release', name), run = fs.mkdtempSync(path.join(os.tmpdir(), 'byqx-article-review-'));
 const appData = path.join(run, 'appdata'), profile = path.join(run, 'profile'), dbFile = path.join(run, 'fixture.db');
 fs.mkdirSync(path.join(appData, 'byqx-blog-desktop'), { recursive: true }); fs.mkdirSync(profile);
@@ -60,6 +61,49 @@ try {
   } else {
     assert.deepEqual(alert, []); assert.equal(await page.locator('#doc-3col').getAttribute('data-editing'), 'true');
     pass('Actual study article opens without read/initialization failure');
+    if (nestedInput) {
+      // Inspect CM's test-only DOM handle; no debug API is shipped in the app.
+      let inputPoint;
+      for (const top of [2500, 1800, 1000, 500, 0]) {
+        await page.evaluate(top => { const root = document.querySelector('.doc-ie-view .cm-content').cmTile.root.view; root.scrollDOM.scrollTop = top; }, top);
+        await page.waitForTimeout(350);
+        inputPoint = await page.evaluate(() => {
+        const root = document.querySelector('.doc-ie-view .cm-content').cmTile.root.view, viewport = root.scrollDOM.getBoundingClientRect();
+        const line = [...root.dom.querySelectorAll('.callout-body .cm-line')].find(el => { const r = el.getBoundingClientRect(); return r.top > Math.max(0, viewport.top) + 30 && r.bottom < Math.min(innerHeight, viewport.bottom) - 70 && el.textContent.length > 10 && el.firstChild?.nodeType === 3 && !/^\s*[-*#>]/.test(el.textContent); });
+        if (!line) return null;
+        const child = root.constructor.findFromDOM(line); window.articleInputProbe = { root, child, node: child.dom };
+        const r = line.getBoundingClientRect(); return { x: r.left + 80, y: r.top + r.height / 2 };
+        });
+        if (inputPoint) break;
+      }
+      assert.ok(inputPoint, 'No visible ordinary paragraph for the nested input regression');
+      await page.mouse.click(inputPoint.x, inputPoint.y); await page.waitForTimeout(150);
+      const before = await page.evaluate(() => {
+        const { root, child } = window.articleInputProbe, source = root.state.doc.toString(), body = child.state.doc.toString(), head = child.state.selection.main.head;
+        const line = child.state.doc.lineAt(head), at = source.indexOf(line.text);
+        if (at < 0 || source.indexOf(line.text, at + 1) !== -1) throw Error('Nested regression needs a unique paragraph');
+        const prefix = source.slice(root.state.doc.lineAt(at).from, at), insertion = at + head - line.from;
+        return { source, body, head, top: root.scrollDOM.scrollTop, expected: source.slice(0, insertion) + '\n' + prefix + source.slice(insertion) };
+      });
+      assert.equal(before.source, study.content);
+      await page.keyboard.press('Enter'); await page.waitForTimeout(400);
+      const after = await page.evaluate(() => { const { root, child, node } = window.articleInputProbe; return { connected: node.isConnected, source: root.state.doc.toString(), body: child.state.doc.toString(), head: child.state.selection.main.head, top: root.scrollDOM.scrollTop }; });
+      assert.equal(after.connected, true); assert.equal(after.head, before.head + 1);
+      assert.equal(after.body, before.body.slice(0, before.head) + '\n' + before.body.slice(before.head));
+      assert.equal(after.source, before.expected); assert.ok(Math.abs(after.top - before.top) <= 2, `Packaged Enter moved ${after.top - before.top}px`);
+      report.nestedInput = { beforeTop: before.top, afterTop: after.top, beforeHead: before.head, afterHead: after.head, sourceChars: after.source.length };
+      await page.waitForFunction(async expected => (await (await fetch('/api/doc/nodes/fixture-study')).json()).node.content === expected, before.expected);
+      pass('Packaged nested Enter preserves caret, owning child, view position, quote prefixes and autosaves exact source');
+      await page.keyboard.press('Control+z'); await page.waitForTimeout(150);
+      assert.equal(await page.evaluate(() => window.articleInputProbe.root.state.doc.toString()), before.source);
+      await page.keyboard.press('Control+y'); await page.waitForTimeout(150);
+      assert.equal(await page.evaluate(() => window.articleInputProbe.root.state.doc.toString()), before.expected);
+      await page.locator('#doc-inline-preview').click(); await page.waitForFunction(() => window.__docInlineEditor.getMode() === 'preview');
+      await page.locator('#doc-inline-edit').click(); await page.waitForFunction(() => document.getElementById('doc-3col').dataset.editing === 'true' && document.querySelector('.doc-ie-view .cm-content'));
+      assert.equal(await page.evaluate(() => document.querySelector('.doc-ie-view .cm-content').cmTile.root.view.state.doc.toString()), before.expected);
+      study = { ...study, content: before.expected };
+      pass('Packaged nested undo/redo and save-preview-reopen preserve the complete edited article');
+    }
     const foldControls = page.locator('.doc-ie-view .cm-callout-widget .callout-title button');
     if (await foldControls.count()) {
       if (visibleScroll) await app.evaluate(({ BrowserWindow }) => { const window = BrowserWindow.getAllWindows()[0]; window.removeListener('show', window.__reviewHide); window.setTitle('隔离 408 编辑验收（临时数据库）'); window.showInactive(); });

@@ -27,7 +27,7 @@ import type { EditorState, Extension } from '@codemirror/state';
 import { makeClickToPos } from './cm-live-preview';
 import { isTableRow, isTableSeparator, parseTable, TableWidget } from './cm-table';
 import { columnBlocks } from './cm-columns-state';
-import { scanVisualDirectives } from '../../lib/markdown-visual-directives';
+import { visualBlocks } from './cm-visual-directives-state';
 import { InteractiveCodeWidget } from './cm-interactive-html';
 import { scanMarkdownCallouts } from '../../lib/markdown-callouts';
 import { appendMarkdownInline, markdownInlineSpans } from './cm-markdown-inline';
@@ -304,7 +304,7 @@ function computeBase(doc: typeof EditorState.prototype.doc): { items: DecoItem[]
   for (const block of columnBlocks(doc)) {
     for (let line = doc.lineAt(block.from).number; line <= doc.lineAt(block.to).number; line += 1) blocked.add(line - 1);
   }
-  for (const block of scanVisualDirectives(doc.toString())) {
+  for (const block of visualBlocks(doc)) {
     for (let line = doc.lineAt(block.from).number; line <= doc.lineAt(block.to).number; line += 1) blocked.add(line - 1);
   }
   /** 行首装饰（标题/引用 hide、列表 marker widget）占用的区间：行内 pass 防重叠 */

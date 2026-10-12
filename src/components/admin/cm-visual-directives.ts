@@ -1,18 +1,19 @@
-import { EditorState, StateEffect, StateField } from '@codemirror/state';
-import type { Extension } from '@codemirror/state';
-import { Decoration, EditorView, WidgetType, keymap, placeholder } from '@codemirror/view';
+import { EditorState, StateEffect, StateField, Transaction as EditorTransaction } from '@codemirror/state';
+import type { EditorSelection, Extension, Transaction } from '@codemirror/state';
+import { Decoration, EditorView, keymap, placeholder } from '@codemirror/view';
 import { searchKeymap } from '@codemirror/search';
 import { searchFoldRestoration } from './cm-search-folds';
 import type { DecorationSet } from '@codemirror/view';
-import { defaultKeymap, redo, undo } from '@codemirror/commands';
+import { defaultKeymap } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { livePreview } from './cm-live-preview';
-import { scanVisualDirectives } from '../../lib/markdown-visual-directives';
+import { visualBlocks, visualEdit, visualTransactionCache } from './cm-visual-directives-state';
 import type { VisualBlock, VisualItem } from '../../lib/markdown-visual-directives';
-import { columnBlocks, registerEditorOwner, rootEditor, setColumnTarget } from './cm-columns-state';
+import { columnBlocks, columnTarget, registerEditorOwner, setColumnTarget } from './cm-columns-state';
 import { scanMarkdownCallouts } from '../../lib/markdown-callouts';
 import { headingFolding, rememberChildHeadingFolds, restoreChildHeadingFolds, unfoldHeadingAt } from './cm-heading-folding';
-import { blockWidgetContent, blockWidgetLayout, blockWidgetResized, destroyBlockWidget, wrapBlockWidget } from './cm-block-widget';
+import { blockWidgetContent, blockWidgetIdentities, blockWidgetLayout, blockWidgetResized, destroyBlockWidget, minimalTextChange, ownedBlockHistory, OwnedBlockWidget, ownsBlockWidget, syncBlockChild, wrapBlockWidget } from './cm-block-widget';
+import type { BlockWidgetIdentity } from './cm-block-widget';
 
 export const setVisualSource = StateEffect.define<boolean>();
 const visualSource = StateField.define<boolean>({
@@ -39,6 +40,26 @@ function select(values: Array<[string, string]>, value: string, label: string, c
   for (const [v, text] of values) { const option = document.createElement('option'); option.value = v; option.textContent = text; node.append(option); }
   node.value = value; node.addEventListener('change', () => change(node.value)); return node;
 }
+function collapseBody(raw: string): string { return raw.split('\n').map(line => line.replace(/^(?:  |\t)/, '')).join('\n'); }
+function collapseOffset(raw: string, offset: number): number {
+  let plain = 0, source = 0;
+  for (const line of raw.split('\n')) {
+    const indent = /^(?:  |\t)/.exec(line)?.[0].length ?? 0, length = line.length - indent;
+    if (offset <= plain + length) return source + indent + offset - plain;
+    plain += length + 1; source += line.length + 1;
+  }
+  return source;
+}
+function bodySourceChange(kind: VisualBlock['kind'], body: NonNullable<VisualItem['body']>, content: string) {
+  if (kind !== 'collapse') return minimalTextChange(body.text, content, body.from);
+  const change = minimalTextChange(collapseBody(body.text), content);
+  if (!change) return null;
+  if (!body.text) return { from: body.from, to: body.to, insert: '  ' + content.replaceAll('\n', '\n  ') };
+  const from = collapseOffset(body.text, change.from), to = collapseOffset(body.text, change.to);
+  const lineStart = body.text.lastIndexOf('\n', from - 1) + 1;
+  const indent = /^(?:  |\t)/.exec(body.text.slice(lineStart))?.[0] ?? '  ';
+  return { from: body.from + from, to: body.from + to, insert: change.insert.replaceAll('\n', '\n' + indent) };
+}
 class VisualController {
   block: VisualBlock;
   raw: string;
@@ -58,17 +79,37 @@ class VisualController {
   private current(): boolean { return !this.disposed && this.parent.state.sliceDoc(this.block.from, this.block.to) === this.raw; }
   private replace(from: number, to: number, text: string, userEvent = 'input.visual-directive'): void {
     if (!this.current()) return;
-    this.parent.dispatch({ changes: { from, to, insert: text }, userEvent });
+    const changes = minimalTextChange(this.parent.state.sliceDoc(from, to), text, from);
+    if (changes) this.parent.dispatch({ changes, userEvent });
   }
   private whole(source: string): void { this.replace(this.block.from, this.block.to, source); }
-  private body(index: number, content: string): void {
+  private bodyOffset(raw: string, offset: number): number { return this.block.kind === 'collapse' ? collapseOffset(raw, offset) : offset; }
+  private body(index: number, content: string, selection: EditorSelection): void {
+    if (!this.current()) return;
     const item = this.block.items[index]; if (!item?.body) return;
-    const text = this.block.kind === 'collapse' ? content.split('\n').map((line) => line ? `  ${line}` : '').join('\n') : content;
-    this.replace(item.body.from, item.body.to, text, 'input.type');
+    let changes = bodySourceChange(this.block.kind, item.body, content);
+    if (changes) {
+      const text = item.body.text.slice(0, changes.from - item.body.from) + changes.insert + item.body.text.slice(changes.to - item.body.from);
+      const source = this.parent.state.doc.toString();
+      const framing = item.body.from === item.body.to && source[item.body.to] && source[item.body.to] !== '\n' ? '\n\n' : '';
+      if (framing) changes = { ...changes, insert: changes.insert + framing };
+      const delta = text.length - item.body.text.length + framing.length;
+      const next = source.slice(0, changes.from) + changes.insert + source.slice(changes.to);
+      const shift = (part: VisualItem['heading']) => part.from >= item.body!.to ? { ...part, from: part.from + delta, to: part.to + delta } : part;
+      const owned = { ...this.block, to: this.block.to + delta, raw: next.slice(this.block.from, this.block.to + delta), closing: shift(this.block.closing),
+        items: this.block.items.map((value, at) => ({ ...value, heading: shift(value.heading), body: at === index ? { from: item.body!.from, to: item.body!.from + text.length, text } : value.body && shift(value.body) })) };
+      this.parent.dispatch({ changes, selection: { anchor: item.body.from + this.bodyOffset(text, selection.main.anchor), head: item.body.from + this.bodyOffset(text, selection.main.head) }, annotations: visualEdit.of(owned), userEvent: 'input.type' });
+    }
+  }
+  private syncSelection(index: number, child: EditorView): void {
+    if (!this.current()) return;
+    const item = this.block.items[index]; if (!item?.body) return;
+    const selection = child.state.selection.main;
+    this.parent.dispatch({ selection: { anchor: item.body.from + this.bodyOffset(item.body.text, selection.anchor), head: item.body.from + this.bodyOffset(item.body.text, selection.head) }, annotations: EditorTransaction.addToHistory.of(false) });
   }
   private bodyContent(item: VisualItem): string {
     const text = item.body?.text ?? '';
-    return this.block.kind === 'collapse' ? text.split('\n').map((line) => line.startsWith('  ') ? line.slice(2) : line).join('\n') : text;
+    return this.block.kind === 'collapse' ? collapseBody(text) : text;
   }
   private itemStart(index: number): number {
     const item = this.block.items[index]!;
@@ -101,9 +142,9 @@ class VisualController {
         ...(this.options.foldHeadings ? [headingFolding()] : []),
         keymap.of([
           { key: 'Mod-s', run: () => { this.options.onSave?.(); return true; } },
-          { key: 'Mod-z', run: () => this.options.onUndo?.(false) ?? undo(rootEditor(this.parent)), shift: () => this.options.onUndo?.(true) ?? redo(rootEditor(this.parent)) },
-          { key: 'Mod-Shift-z', run: () => this.options.onUndo?.(true) ?? redo(rootEditor(this.parent)) },
-          { key: 'Mod-y', run: () => this.options.onUndo?.(true) ?? redo(rootEditor(this.parent)) },
+          { key: 'Mod-z', run: () => this.options.onUndo?.(false) ?? ownedBlockHistory(this.parent, false), shift: () => this.options.onUndo?.(true) ?? ownedBlockHistory(this.parent, true) },
+          { key: 'Mod-Shift-z', run: () => this.options.onUndo?.(true) ?? ownedBlockHistory(this.parent, true) },
+          { key: 'Mod-y', run: () => this.options.onUndo?.(true) ?? ownedBlockHistory(this.parent, true) },
           ...defaultKeymap,
           ...searchKeymap,
         ]),
@@ -112,13 +153,17 @@ class VisualController {
           focus: (event) => { if (event.target === child.contentDOM) { setColumnTarget(this.parent, child); setColumnTarget(child); } return false; },
           paste: (event) => { setColumnTarget(this.parent, child); return this.options.onPaste?.(event) ?? false; },
         }),
-        EditorView.updateListener.of((update) => { if (this.editing || this.disposed || !update.docChanged) return; this.body(index, update.state.doc.toString()); }),
+        EditorView.updateListener.of((update) => {
+          if (this.editing || this.disposed) return;
+          if (update.docChanged) this.body(index, update.state.doc.toString(), update.state.selection);
+          else if (update.selectionSet && columnTarget(child)?.hasFocus) this.syncSelection(index, child);
+        }),
         EditorView.theme({ '&': { backgroundColor: 'transparent', fontSize: 'inherit' }, '&.cm-focused': { outline: 'none' }, '.cm-scroller': { fontFamily: 'inherit', overflow: 'visible' }, '.cm-content': { minHeight: '3rem', padding: '.5rem .25rem' }, '.cm-line': { padding: '0' } }),
       ],
     }) });
     registerEditorOwner(child, this.parent, () => {
       const body = this.block.items[index]!.body!, source = this.parent.state.doc.toString(), kind = this.block.kind;
-      return content => source.slice(0, body.from) + (kind === 'collapse' ? content.split('\n').map(line => line ? `  ${line}` : '').join('\n') : content) + source.slice(body.to);
+      return content => { const change = bodySourceChange(kind, body, content); return change ? source.slice(0, change.from) + change.insert + source.slice(change.to) : source; };
     });
     if (this.options.foldHeadings) restoreChildHeadingFolds(this.parent, `visual:${this.block.kind}:${this.block.from}:${index}`, child);
     this.children.set(index, child);
@@ -273,9 +318,7 @@ class VisualController {
     else for (const [index, child] of this.children) {
       const value = this.bodyContent(block.items[index]!);
       if (child.state.doc.toString() === value) continue;
-      this.editing = true;
-      try { child.dispatch({ changes: { from: 0, to: child.state.doc.length, insert: value } }); }
-      finally { this.editing = false; }
+      syncBlockChild(child, () => this.bodyContent(this.block.items[index]!), () => this.disposed || this.children.get(index) !== child, value => this.editing = value);
     }
     return true;
   }
@@ -296,11 +339,11 @@ class VisualController {
   }
   destroy(): void { this.disposed = true; this.closeChildren(); }
 }
-class VisualWidget extends WidgetType {
-  constructor(readonly block: VisualBlock, readonly options: Options, readonly layout: number) { super(); }
-  eq(other: VisualWidget): boolean { return this.layout === other.layout && this.block.raw === other.block.raw && this.block.from === other.block.from; }
-  toDOM(view: EditorView): HTMLElement { const dom = document.createElement('div'); controllers.set(dom, new VisualController(view, dom, this.block, this.options)); return wrapBlockWidget(dom, view, '1rem'); }
-  updateDOM(dom: HTMLElement): boolean { return controllers.get(blockWidgetContent(dom))?.sync(this.block) ?? false; }
+class VisualWidget extends OwnedBlockWidget {
+  constructor(readonly block: VisualBlock, readonly options: Options, readonly layout: number, identity: BlockWidgetIdentity) { super(identity); }
+  eq(other: VisualWidget): boolean { return this.identity === other.identity && this.layout === other.layout && this.block.raw === other.block.raw && this.block.from === other.block.from; }
+  toDOM(view: EditorView): HTMLElement { const dom = document.createElement('div'); controllers.set(dom, new VisualController(view, dom, this.block, this.options)); return wrapBlockWidget(dom, view, '1rem', this.identity); }
+  updateDOM(dom: HTMLElement): boolean { return ownsBlockWidget(dom, this.identity) && (controllers.get(blockWidgetContent(dom))?.sync(this.block) ?? false); }
   destroy(dom: HTMLElement): void { const card = blockWidgetContent(dom); destroyBlockWidget(dom); controllers.get(card)?.destroy(); controllers.delete(card); }
   ignoreEvent(): boolean { return true; }
 }
@@ -313,17 +356,17 @@ export function revealVisualHeading(parent: EditorView, pos: number): boolean {
 }
 
 export function visualDirectivesExtension(options: Options = {}): Extension {
-  const build = (state: EditorState): DecorationSet => {
+  const build = (state: EditorState, previous?: DecorationSet, tr?: Transaction): DecorationSet => {
     if (state.field(visualSource)) return Decoration.none;
     const columns = [...columnBlocks(state.doc), ...scanMarkdownCallouts(state.doc.toString())];
-    return Decoration.set(scanVisualDirectives(state.doc.toString()).filter((block) =>
-      !columns.some((column) => block.from >= column.from && block.to <= column.to)).map((block) =>
-      Decoration.replace({ block: true, widget: new VisualWidget(block, options, state.field(blockWidgetLayout).get(block.from) ?? 0) }).range(block.from, block.to)));
+    const blocks = visualBlocks(state.doc).filter(block => !columns.some(column => block.from >= column.from && block.to <= column.to));
+    const identities = blockWidgetIdentities(blocks, previous, tr);
+    return Decoration.set(blocks.map(block => Decoration.replace({ block: true, widget: new VisualWidget(block, options, state.field(blockWidgetLayout).get(block.from) ?? 0, identities.get(block)!) }).range(block.from, block.to)));
   };
   const field = StateField.define<DecorationSet>({
     create: build,
-    update: (value, tr) => tr.docChanged || tr.effects.some((effect) => effect.is(setVisualSource) || effect.is(blockWidgetResized)) ? build(tr.state) : value,
+    update: (value, tr) => tr.docChanged || tr.effects.some((effect) => effect.is(setVisualSource) || effect.is(blockWidgetResized)) ? build(tr.state, value, tr) : value,
     provide: (field) => EditorView.decorations.from(field),
   });
-  return [blockWidgetLayout, visualSource, field];
+  return [blockWidgetLayout, visualTransactionCache, visualSource, field];
 }
