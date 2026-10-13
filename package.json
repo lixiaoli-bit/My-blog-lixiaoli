@@ -5,6 +5,8 @@
   "type": "module",
   "main": "desktop/main.cjs",
   "scripts": {
+    "start": "node scripts/start-local.mjs",
+    "setup:local": "node scripts/start-local.mjs --setup",
     "dev": "astro dev",
     "build": "node scripts/migrate-deployment-schema.mjs && tsx scripts/verify-cloud-databases.mts && astro build",
     "build:desktop": "node scripts/build-desktop.mjs",
