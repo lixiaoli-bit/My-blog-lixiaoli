@@ -100,24 +100,19 @@ _一个功能完整的综合型个人博客 —— 技术教程 · 学习笔记 
 
 **环境要求**：Node.js ≥ 22.12 · pnpm 11（项目声明 `pnpm@11.20.0`）
 
-```bash
+```powershell
 # 1. 安装依赖
 pnpm install
 
-# 2. 复制环境变量（开发默认值已内置，可按需修改）
-cp .env.example .env
-
-# 3. 初始化 SQLite 数据库（data/blog.db）
-pnpm db:push:dev
-
-# 4. 灌入演示数据（幂等）
-pnpm db:seed
-
-# 5. 启动开发服务器
-pnpm dev
+# 2. 自动配置、初始化并启动
+pnpm start
 ```
 
-打开 http://localhost:4321 ，访问 `/login` 登录写作台（开发密码见 `.env` 的 `ADMIN_PASSWORD`，默认 `dev-admin-password`）。
+以后在项目根目录运行 `pnpm start` 即可启动。按 `Ctrl+C` 停止。
+
+首次运行自动创建 `.env`、生成随机管理员密码和 `AUTH_SECRET`、创建 SQLite 父目录、初始化数据库并加入三篇演示文章；即使缺少 `.env.example` 也可运行。生成的管理员密码显示在终端，并保存在 `.env` 的 `ADMIN_PASSWORD`，可自行修改。已有非空配置保留；已有数据库跳过自动推送结构和演示数据，初始化中断则下次重试。配置为 PostgreSQL 时只启动，不自动迁移或加入演示数据。
+
+打开 http://localhost:4321 ，访问 `/login` 登录写作台。只想准备配置和数据库而暂不启动，可以运行 `pnpm setup:local`；`pnpm dev` 保留为直接启动开发服务器的入口，不执行准备步骤。
 
 ### 使用 Windows 便携版
 
@@ -169,6 +164,8 @@ pnpm dev
 
 | 命令 | 说明 |
 | --- | --- |
+| `pnpm start` | 自动准备本地配置和首次数据库，然后启动开发服务器 |
+| `pnpm setup:local` | 仅准备本地配置和首次数据库，不启动服务器 |
 | `pnpm dev` | 启动开发服务器（http://localhost:4321） |
 | `pnpm build` | 生产构建（含数据迁移脚本） |
 | `pnpm preview` | 本地预览生产构建 |
