@@ -1,0 +1,78 @@
+name: Windows Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to build
+        required: true
+        default: v1.1.4
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+      BYQX_DESKTOP_DIST_DIR: .diag/windows-release-dist
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.19.0
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.20.0
+      - name: Build and verify Windows packages
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          function rtk { $program=$args[0]; $argv=@($args | Select-Object -Skip 1); & $program @argv; if($LASTEXITCODE -ne 0) { throw "$program failed: $LASTEXITCODE" } }
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($env:RELEASE_TAG -ne "v$version") { throw 'Tag and package version differ' }
+          rtk pnpm install --frozen-lockfile
+          rtk pnpm check
+          rtk pnpm test
+          rtk pnpm run build:portable -- --target windows-release
+          rtk node scripts/verify-editor-portable.mjs windows-release
+          rtk node scripts/verify-deployment-fixes.mjs windows-release
+          $workspace = (Get-Location).Path
+          $portable = (Resolve-Path release/windows-release).Path
+          if (-not $portable.StartsWith($workspace + [IO.Path]::DirectorySeparatorChar)) { throw 'Invalid portable path' }
+          $assets = Join-Path $workspace 'release/assets'
+          New-Item -ItemType Directory -Path $assets -Force | Out-Null
+          $marker = Join-Path $portable 'resources/desktop-assets/portable.marker'
+          $markerContent = Get-Content -LiteralPath $marker -Raw
+          Remove-Item -LiteralPath $marker
+          try {
+            rtk pnpm exec electron-builder --win nsis --x64 --prepackaged $portable --config desktop-builder.yml --config.directories.output=release/assets --publish never
+          } finally { [IO.File]::WriteAllText($marker, $markerContent) }
+          $zip = Join-Path $assets "My-Blog-$version-Windows-x64-Portable.zip"
+          [IO.Compression.ZipFile]::CreateFromDirectory($portable, $zip, [IO.Compression.CompressionLevel]::Optimal, $true)
+          $files = @("My-Blog-$version-Windows-x64-Setup.exe", "My-Blog-$version-Windows-x64-Portable.zip")
+          $checksums = foreach ($name in $files) { "$((Get-FileHash -LiteralPath (Join-Path $assets $name) -Algorithm SHA256).Hash.ToLowerInvariant())  $name" }
+          [IO.File]::WriteAllText((Join-Path $assets 'SHA256SUMS.txt'), ($checksums -join "`n") + "`n")
+      - name: Publish latest Windows release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          function rtk { $program=$args[0]; $argv=@($args | Select-Object -Skip 1); & $program @argv; if($LASTEXITCODE -ne 0) { throw "$program failed: $LASTEXITCODE" } }
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -ne 0) { rtk gh release create $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --verify-tag --draft --title "$($env:RELEASE_TAG) · Windows 桌面版" --notes-file "docs/releases/$($env:RELEASE_TAG).md" }
+          rtk gh release upload $env:RELEASE_TAG "release/assets/My-Blog-$version-Windows-x64-Setup.exe" "release/assets/My-Blog-$version-Windows-x64-Portable.zip" release/assets/SHA256SUMS.txt --repo $env:GITHUB_REPOSITORY --clobber
+          rtk gh release edit $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --draft=false --latest --title "$($env:RELEASE_TAG) · Windows 桌面版" --notes-file "docs/releases/$($env:RELEASE_TAG).md"
