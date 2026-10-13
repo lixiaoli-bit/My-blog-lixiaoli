@@ -25,7 +25,13 @@ jobs:
     env:
       RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
       BYQX_DESKTOP_DIST_DIR: .diag/windows-release-dist
+      TZ: Asia/Shanghai
     steps:
+      - name: Preserve repository fixture line endings
+        shell: pwsh
+        run: |
+          function rtk { $program=$args[0]; $argv=@($args | Select-Object -Skip 1); & $program @argv; if($LASTEXITCODE -ne 0) { throw "$program failed: $LASTEXITCODE" } }
+          rtk git config --global core.autocrlf false
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.tag || github.ref }}
@@ -44,7 +50,11 @@ jobs:
           if ($env:RELEASE_TAG -ne "v$version") { throw 'Tag and package version differ' }
           rtk pnpm install --frozen-lockfile --fetch-timeout=600000 --fetch-retries=3
           rtk pnpm check
-          rtk pnpm test
+          rtk pnpm run desktop:template
+          $unitDb = Join-Path (Get-Location).Path '.diag/ci-unit.db'
+          Copy-Item -LiteralPath desktop/assets/template.db -Destination $unitDb
+          $env:DATABASE_URL = "file:$unitDb"
+          try { rtk pnpm test } finally { Remove-Item Env:DATABASE_URL }
           rtk pnpm run build:portable -- --target windows-release
           rtk node scripts/verify-editor-portable.mjs windows-release
           rtk node scripts/verify-deployment-fixes.mjs windows-release
