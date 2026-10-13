@@ -27,6 +27,7 @@ extraResources:
     to: desktop-assets
 
 win:
+  artifactName: My-Blog-${version}-Windows-${arch}-Setup.${ext}
   target:
     - nsis
   # v1 不签名：首次运行需在 SmartScreen 点「仍要运行」

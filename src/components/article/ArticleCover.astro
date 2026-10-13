@@ -8,6 +8,38 @@ const url = cover?.trim() || undefined;
   <img src={url} data-article-cover alt={`${title}的封面`} width="1200" height="675" decoding="async" />
 </figure>
 <script>
+  import { confirmDanger } from '@/lib/confirm';
+  import { toast } from '@/lib/toast';
+  let menu: HTMLDivElement | null = null;
+  let menuImage: HTMLImageElement | null = null;
+  const closeCoverMenu = () => { menu?.remove(); menu = null; menuImage = null; };
+  document.addEventListener('contextmenu', event => {
+    const image = event.target instanceof Element ? event.target.closest<HTMLImageElement>('[data-article-cover-block] img') : null;
+    if (!image || !location.pathname.startsWith('/edit/') || document.getElementById('doc-detail-data')?.dataset.authed !== '1') return;
+    event.preventDefault(); closeCoverMenu(); menuImage = image;
+    const block = image.closest<HTMLElement>('[data-article-cover-block]')!;
+    const id = block.dataset.coverFor!;
+    const expectedCover = image.getAttribute('src') || '';
+    menu = document.createElement('div'); menu.className = 'md-context-menu'; menu.setAttribute('role', 'menu'); menu.setAttribute('aria-label', '封面图片操作');
+    Object.assign(menu.style, { position: 'fixed', zIndex: '100', left: `${Math.min(event.clientX, window.innerWidth - 180)}px`, top: `${Math.min(event.clientY, window.innerHeight - 60)}px` });
+    const remove = document.createElement('button'); remove.type = 'button'; remove.setAttribute('role', 'menuitem'); remove.textContent = '删除图片';
+    remove.addEventListener('click', async () => {
+      closeCoverMenu();
+      if (!(await confirmDanger('删除这篇文章的封面图片？正文和图片文件将保留。'))) return;
+      if (!block.isConnected || document.getElementById('doc-detail-data')?.dataset.activeNode !== id) return;
+      try {
+        if (await window.__docInlineEditor?.flush?.() === false) throw Error('请先保存正文');
+        const response = await fetch(`/api/articles/${id}/cover`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url: '', expectedCover }) });
+        const result = await response.json(); if (!response.ok) throw Error(result.error || '删除失败');
+        window.dispatchEvent(new CustomEvent('article:cover-changed', { detail: { id, url: '' } }));
+        toast('封面已删除', 'success');
+      } catch (error) { toast(error instanceof Error ? error.message : '删除失败', 'error'); }
+    });
+    menu.append(remove); document.body.append(menu); remove.focus({ preventScroll: true });
+  });
+  document.addEventListener('pointerdown', event => { if (menu && event.target instanceof Node && !menu.contains(event.target)) closeCoverMenu(); });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && menu) { const image = menuImage; closeCoverMenu(); image?.focus({ preventScroll: true }); } });
+  document.addEventListener('astro:before-swap', closeCoverMenu);
   window.addEventListener('article:cover-changed', event => {
     const { id, url } = (event as CustomEvent<{ id: string; url: string }>).detail;
     for (const block of document.querySelectorAll<HTMLElement>('[data-article-cover-block]')) {

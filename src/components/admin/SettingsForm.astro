@@ -284,9 +284,9 @@ const mdCssLib = await getMdCssLibrary();
       <ClassicAppearanceSettings label="内容显示设置 · 字体与背景">
       <!-- 全局字体 -->
       <p class="pixel-chip text-primary">FONTS</p>
-      <h2 class="mt-1 font-medium">正文阅读字体</h2>
+      <h2 class="mt-1 font-medium">全局与文章字体</h2>
       <p class="mt-1 text-xs text-muted-foreground">
-        文章正文可单独选择字体和字号。导航、首页和界面统一使用 Noto Sans SC；恢复默认后使用系统阅读字体。
+        文章字体未单独设置时跟随全局字体；单独设置后仅文章使用该字体。两者均未设置时使用默认字体。
       </p>
 
       <!-- 手动/跟随主题状态 + 操作 -->
@@ -297,7 +297,7 @@ const mdCssLib = await getMdCssLibrary();
           type="button"
           class="hidden rounded-md border border-border px-2.5 py-1 text-xs transition-colors duration-200 hover:border-primary hover:text-primary"
         >
-          恢复默认阅读字体
+          恢复默认字体
         </button>
         <p id="font-mode-status" class="hidden w-full text-xs text-destructive" role="alert"></p>
       </div>
@@ -309,7 +309,8 @@ const mdCssLib = await getMdCssLibrary();
             id="font-article"
             class="mt-1 block w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm outline-none transition-colors focus-visible:border-ring"
           >
-            <option value="system:sans">系统无衬线（默认）</option>
+            <option value="inherit:">跟随全局字体</option>
+            <option value="system:sans">系统无衬线</option>
             <option value="system:serif">系统衬线（宋体）</option>
             <option value="system:mono">系统等宽</option>
             <option value="builtin:lora">Lora（文艺衬线）</option>
@@ -321,13 +322,14 @@ const mdCssLib = await getMdCssLibrary();
             }
           </select>
         </label>
-        <label hidden class="hidden">
-          其他字体（标题/UI/评论/动态等所有非正文）
+        <label class="block text-xs font-medium text-muted-foreground">
+          全局字体（首页、导航及其他界面）
           <select
             id="font-ui"
             class="mt-1 block w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm outline-none transition-colors focus-visible:border-ring"
           >
-            <option value="system:sans">系统无衬线（默认）</option>
+            <option value="inherit:">默认字体</option>
+            <option value="system:sans">系统无衬线</option>
             <option value="system:serif">系统衬线（宋体）</option>
             <option value="system:mono">系统等宽</option>
             <option value="builtin:lora">Lora（文艺衬线）</option>
@@ -680,6 +682,7 @@ const mdCssLib = await getMdCssLibrary();
             本地优先：浏览与写作都走本地数据库（毫秒级、可离线）。点「立即同步」双向推拉云端变更；
             冲突会保留败方备份，绝不静默丢数据。
           </p>
+          <a href="/deploy/#desktop-cloud" target="_blank" rel="noopener noreferrer" class="mt-2 inline-block text-sm text-primary underline">云端部署教程（Vercel / 数据库 / R2）</a>
         </div>
         <span id="sync-cloud-state" class="text-xs text-muted-foreground"></span>
       </div>
@@ -693,7 +696,7 @@ const mdCssLib = await getMdCssLibrary();
         >
           立即同步
         </button>
-        <span id="sync-status" class="text-xs text-muted-foreground" role="status"></span>
+        <span id="sync-status" class="w-full text-xs text-muted-foreground" role="status" aria-live="polite" aria-atomic="true">正在读取同步状态…</span>
         <div id="sync-progress" class="motion-progress w-full" role="progressbar" aria-label="同步进度" aria-valuemin="0" aria-valuemax="100" hidden><span></span></div>
       </div>
 
@@ -2579,10 +2582,10 @@ const mdCssLib = await getMdCssLibrary();
       function renderFontMode(): void {
         if (!fontModeText || !fontFollowTheme) return;
         if (hasManualFonts) {
-          fontModeText.textContent = '当前：已自定义正文阅读字体';
+          fontModeText.textContent = '当前：已保存字体设置；文章可跟随全局或单独设置';
           fontFollowTheme.classList.remove('hidden');
         } else {
-          fontModeText.textContent = '当前：默认阅读字体';
+          fontModeText.textContent = '当前：默认字体';
           fontFollowTheme.classList.add('hidden');
         }
       }
@@ -2593,7 +2596,7 @@ const mdCssLib = await getMdCssLibrary();
         fontModeStatus.classList.toggle('hidden', !isError);
       }
       fontFollowTheme?.addEventListener('click', async () => {
-        if (!(await confirmDialog('恢复默认阅读字体？将清除正文的手动字体与字号设置。'))) return;
+        if (!(await confirmDialog('恢复默认字体？将清除全局、文章的手动字体与字号设置。'))) return;
         try {
           const res = await fetch('/api/fonts-settings', { method: 'DELETE' });
           if (!res.ok) throw new Error('清除失败');
@@ -2601,15 +2604,16 @@ const mdCssLib = await getMdCssLibrary();
           setHasManualFonts(false);
           if (appearanceEl) {
             appearanceEl.dataset.fonts = JSON.stringify({
-              article: { type: 'system', value: 'sans' },
-              ui: { type: 'builtin', value: 'lora' },
+              article: { type: 'inherit', value: '' },
+              ui: { type: 'inherit', value: '' },
               scale: 100,
             });
           }
           initFontSelects();
           setFontModeStatus('', false);
           renderFontMode();
-          toastSuccess('已恢复默认阅读字体');
+          document.getElementById('site-font-overrides')?.remove();
+          toastSuccess('已恢复默认字体');
         } catch {
           setFontModeStatus('清除失败，请重试', true);
         }
@@ -2812,7 +2816,7 @@ const mdCssLib = await getMdCssLibrary();
         if (!fontArticle || !fontUi) return;
         const pick = (sel: HTMLSelectElement): { type: string; value: string } => {
           const [type, ...rest] = sel.value.split(':');
-          return { type: type === 'builtin' || type === 'custom' ? type : 'system', value: rest.join(':') };
+          return { type: type === 'inherit' || type === 'builtin' || type === 'custom' ? type : 'system', value: rest.join(':') };
         };
         try {
           const res = await fetch('/api/fonts-settings', {
@@ -2822,8 +2826,13 @@ const mdCssLib = await getMdCssLibrary();
           });
           if (!res.ok) throw new Error('保存失败');
           // 就地同步「手动字体」状态与已保存选择（否则模式文案要等整页刷新才更新）
-          const d = (await res.json().catch(() => ({}))) as { fonts?: unknown };
+          const d = (await res.json().catch(() => ({}))) as { fonts?: unknown; css?: string };
           if (d.fonts && appearanceEl) appearanceEl.dataset.fonts = JSON.stringify(d.fonts);
+          if (typeof d.css === 'string') {
+            let style = document.getElementById('site-font-overrides');
+            if (!style) { style = document.createElement('style'); style.id = 'site-font-overrides'; document.head.appendChild(style); }
+            style.textContent = d.css;
+          }
           setHasManualFonts(true);
           renderFontMode();
           if (hint) {
@@ -2846,6 +2855,7 @@ const mdCssLib = await getMdCssLibrary();
 <!-- 云端同步分区交互（仅桌面端渲染该分区；脚本对不存在时自动跳过） -->
 <script>
   import { feedback } from '@/lib/motion';
+  import { toast } from '@/lib/toast';
   /** 同步报告的单表计数（与 src/sync/core/types.ts 的 TableReport 对齐） */
   interface SyncTableStat {
     table: string;
@@ -2886,10 +2896,16 @@ const mdCssLib = await getMdCssLibrary();
     const progressEl = document.getElementById('sync-progress');
     let pollTimer = 0;
     let pollFailures = 0;
+    let requestVersion = 0;
+    let userRequested = false;
+    let starting = false;
+    let waitingTimer = 0;
     const lifetime = new AbortController();
     document.addEventListener('astro:before-swap', () => {
       lifetime.abort();
       clearTimeout(pollTimer);
+      clearInterval(waitingTimer);
+      delete btn.dataset.inited;
     }, { once: true, signal: lifetime.signal });
     function progress(value: number | null): void {
       if (!progressEl) return;
@@ -2903,7 +2919,7 @@ const mdCssLib = await getMdCssLibrary();
       if (!statusEl) return;
       if (statusEl.textContent !== text) void feedback(statusEl);
       statusEl.textContent = text;
-      statusEl.className = cls;
+      statusEl.className = 'w-full ' + cls;
     }
 
     function renderReport(report: SyncReportLike): void {
@@ -2928,18 +2944,21 @@ const mdCssLib = await getMdCssLibrary();
     async function poll(): Promise<void> {
       if (lifetime.signal.aborted || !btn.isConnected) return;
       clearTimeout(pollTimer);
+      const version = requestVersion;
       try {
         const res = await fetch('/api/desktop/sync', { cache: 'no-store', signal: AbortSignal.any([lifetime.signal, AbortSignal.timeout(10000)]) });
         if (!res.ok) {
           throw new Error('HTTP ' + res.status);
         }
         const s = (await res.json()) as SyncStatusLike;
+        if (version !== requestVersion || starting || lifetime.signal.aborted) return;
         pollFailures = 0;
         if (cloudEl) {
           cloudEl.textContent = s.cloudConfigured ? '云端已配置' : '云端未配置：请在下方保存或导入连接配置';
         }
         if (s.running) {
           btn.disabled = true;
+          btn.textContent = '同步中…';
           const p = s.progress;
           const elapsed = s.startedAt ? Math.max(0, Math.floor((Date.now() - s.startedAt) / 1000)) : 0;
           const duration = elapsed ? ' · 已等待 ' + elapsed + ' 秒' : '';
@@ -2951,6 +2970,7 @@ const mdCssLib = await getMdCssLibrary();
           return;
         }
         btn.disabled = !s.cloudConfigured;
+        btn.textContent = '立即同步';
         progress(s.lastReport?.ok && !s.lastError ? 1 : null);
         if (!s.cloudConfigured) {
           progress(null);
@@ -2963,8 +2983,12 @@ const mdCssLib = await getMdCssLibrary();
         } else {
           setStatus('尚未同步过', 'text-xs text-muted-foreground');
         }
+        if (userRequested) {
+          userRequested = false;
+          toast(statusEl?.textContent || '同步状态已更新', s.lastError || s.lastReport?.ok === false ? 'error' : 'success');
+        }
       } catch (err) {
-        if (lifetime.signal.aborted) return;
+        if (lifetime.signal.aborted || version !== requestVersion || starting) return;
         const msg = err instanceof Error ? err.message : String(err);
         pollFailures += 1;
         if (pollFailures <= 3) {
@@ -2972,6 +2996,7 @@ const mdCssLib = await getMdCssLibrary();
           pollTimer = window.setTimeout(() => void poll(), 1000);
         } else {
           btn.disabled = false;
+          btn.textContent = '重新检查同步';
           progress(null);
           setStatus('无法确认同步状态：' + msg + '。可点击立即同步重新检查，后台任务不会重复启动。', 'text-xs text-destructive');
         }
@@ -2981,28 +3006,46 @@ const mdCssLib = await getMdCssLibrary();
     btn.addEventListener('click', async () => {
       clearTimeout(pollTimer);
       pollFailures = 0;
+      requestVersion++;
+      userRequested = true;
+      starting = true;
       btn.disabled = true;
+      btn.textContent = '正在启动…';
       progress(0);
       setStatus('正在启动…', 'text-xs text-muted-foreground');
+      toast('同步请求已发出，正在准备本地数据并连接云端', 'info');
+      const requestedAt = Date.now();
+      waitingTimer = window.setInterval(() => {
+        if (starting) setStatus('正在启动同步 · 已等待 ' + Math.floor((Date.now() - requestedAt) / 1000) + ' 秒', 'text-xs text-muted-foreground');
+      }, 1000);
       try {
         const res = await fetch('/api/desktop/sync', { method: 'POST', cache: 'no-store', signal: AbortSignal.any([lifetime.signal, AbortSignal.timeout(10000)]) });
         if (!res.ok) {
           const result = await res.json().catch(() => null);
           throw new Error(result?.error || 'HTTP ' + res.status);
         }
+        starting = false;
+        clearInterval(waitingTimer);
         await poll();
       } catch (err) {
         if (lifetime.signal.aborted) return;
         btn.disabled = false;
+        btn.textContent = '重新检查同步';
         progress(null);
         const msg = err instanceof Error ? err.message : String(err);
         setStatus('启动请求未确认：' + msg + '。正在检查后台状态，不会重复启动同步', 'text-xs text-destructive');
         // A timed-out POST may already have started the task. Read before retrying.
         pollTimer = window.setTimeout(() => void poll(), 1000);
+      } finally {
+        starting = false;
+        clearInterval(waitingTimer);
       }
-    });
+    }, { signal: lifetime.signal });
 
     window.addEventListener('byqx:sync-config-change', () => void poll(), { signal: lifetime.signal });
+    document.addEventListener('byqx:settings-section-change', event => {
+      if ((event as CustomEvent).detail?.section === 'sync' && !starting) void poll();
+    }, { signal: lifetime.signal });
     void poll();
   }
 

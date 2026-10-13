@@ -41,7 +41,7 @@ const toolchain = { operation(action, input) {
 } };
 
 /** 必填项：缺一则服务无法正常使用 */
-const REQUIRED_KEYS = ['SYNC_DATABASE_URL', 'ADMIN_PASSWORD'];
+const REQUIRED_KEYS = ['ADMIN_PASSWORD'];
 /** 可选透传（云端对象存储 / 外挂评论 / Blob 大字体直传 / 云端同步连接串） */
 const OPTIONAL_PASSTHROUGH = [
   'R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET',
@@ -137,29 +137,7 @@ function randomSecret() {
 }
 
 /** 读取配置；不存在则写模板并返回 null（调用方引导用户填写后重启） */
-function loadOrCreateConfig() {
-  mkdirSync(CONFIG_DIR, { recursive: true });
-  if (!existsSync(CONFIG_FILE)) {
-    const template = {
-      SYNC_DATABASE_URL: 'postgres://用户名:密码@主机:5432/库名',
-      ADMIN_PASSWORD: '你的站主密码（与 Web 版一致）',
-      TOP_ADMIN_PASSWORD: '',
-      AUTH_SECRET: randomSecret(),
-      R2_ACCOUNT_ID: '', R2_ACCESS_KEY_ID: '', R2_SECRET_ACCESS_KEY: '',
-      R2_BUCKET: '', R2_PUBLIC_BASE_URL: '', R2_S3_ENDPOINT: '',
-      BLOB_READ_WRITE_TOKEN: '', PUBLIC_TWIKOO_ENV_ID: '',
-      GITHUB_CLIENT_ID: '', GITHUB_CLIENT_SECRET: '', ADMIN_GITHUB_LOGIN: '',
-      PORT: '43217',
-    };
-    writeFileSync(CONFIG_FILE, JSON.stringify(template, null, 2), 'utf8');
-    return null;
-  }
-  try {
-    return JSON.parse(readFileSync(CONFIG_FILE, 'utf8'));
-  } catch {
-    return null;
-  }
-}
+function loadOrCreateConfig() { return require('./config.cjs').loadDesktopConfig(CONFIG_FILE); }
 
 /** 探测端口是否空闲 */
 function isPortFree(port) {
@@ -686,27 +664,12 @@ async function main() {
   const startPath = process.env.BYQX_START_PATH || '/';
   process.env.DESKTOP_VERSION = app.getVersion();
 
-  const cfg = loadOrCreateConfig();
-  if (!cfg) {
-    if (smoke) {
-      console.log('BYQX_SMOKE_WARN config-missing');
-    } else {
-      dialog.showErrorBox(
-        '首次使用：请先填写配置',
-        `已生成配置模板：\n${CONFIG_FILE}\n\n至少填写 SYNC_DATABASE_URL（云端 PostgreSQL 连接串）与 ADMIN_PASSWORD（站主密码），保存后重启应用。`,
-      );
-      shell.showItemInFolder(CONFIG_FILE);
-      app.quit();
-      // ⚠️ 必须 return：否则会带着空配置继续往下走（再弹一个「缺少必填配置」，
-      //    并尝试用空 DATABASE_URL / ADMIN_PASSWORD 起服务，报出误导性错误）
-      return;
-    }
-  }
-  const config = cfg ?? {};
+  const { config, firstRun } = loadOrCreateConfig();
 
   const missing = REQUIRED_KEYS.filter((k) => !config[k]);
   if (missing.length > 0 && !smoke) {
     dialog.showErrorBox('缺少必填配置', `config.json 缺少：${missing.join(', ')}\n文件位置：${CONFIG_FILE}`);
+    app.quit(); return;
   }
 
   const port = await pickPort(Number(config.PORT) || 43217);
@@ -731,6 +694,7 @@ async function main() {
   process.env.DESKTOP_MODE = '1';
   for (const key of OPTIONAL_PASSTHROUGH) {
     if (config[key]) process.env[key] = config[key];
+    else delete process.env[key];
   }
   if (!app.isPackaged) process.chdir(APP_ROOT);
 
@@ -805,8 +769,22 @@ async function main() {
   }
 
   // ---- 窗口 / 托盘 / 版本检查 ----
+  if (config.LOCAL_OWNER_AUTO_LOGIN === true) {
+    const response = await fetch(`${siteUrl}/api/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: config.ADMIN_PASSWORD }), signal: AbortSignal.timeout(10000) });
+    if (!response.ok) throw new Error('本地站主登录失败');
+    for (const cookie of response.headers.getSetCookie()) {
+      const pair = cookie.split(';')[0], at = pair.indexOf('=');
+      if (at <= 0) continue;
+      await session.defaultSession.cookies.set({ url: siteUrl, name: pair.slice(0, at), value: pair.slice(at + 1), path: '/', httpOnly: true, sameSite: 'lax' });
+    }
+  }
   mainWindow = createWindow(siteUrl + startPath, { primary: true });
   createTray(mainWindow);
+  if (firstRun) {
+    void dialog.showMessageBox(mainWindow, { type: 'info', title: '选择使用方式', message: '本地数据库已创建，可以离线写作。', detail: '本地使用无需云端账号。云端部署可按教程创建 PostgreSQL 与可选图片存储，再在设置 → 云端同步中配置。', buttons: ['本地使用', '查看云端部署教程'], defaultId: 0, cancelId: 0 }).then(result => {
+      if (result.response === 1) return shell.openExternal(`${siteUrl}/deploy/#desktop-cloud`);
+    });
+  }
   // 渲染层 console 转发已移入 createWindow（Ctrl+N 多开后所有窗口统一生效）
 
   mainWindow.once('ready-to-show', () => logLaunch('窗口已显示'));

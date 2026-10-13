@@ -253,7 +253,7 @@ const needsKatexFonts =
       })();
     </script>
     {/* 手动字体设置覆盖（仅设置过时注入；未设置则跟随主题字体） */}
-    {fontCss !== '' && <style data-classic-style set:html={fontCss} />}
+    {fontCss !== '' && <style id="site-font-overrides" set:html={fontCss} />}
     {/* 自定义 Markdown 样式（管理员上传，作用域限定 .prose；SSR 每页注入，ClientRouter 转场随新 head 存活） */}
     {mdCssScoped !== '' && <style id="md-custom-css" data-classic-style set:html={mdCssScoped} />}
     {/* 全站文字样式：① 内置默认风格包（site-text 层，始终生效）② 管理员自定义（unlayered，覆盖 ①）。

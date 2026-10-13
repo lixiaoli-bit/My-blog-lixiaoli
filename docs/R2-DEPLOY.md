@@ -1,5 +1,7 @@
 # 图片存储迁移到 Cloudflare R2 —— 上线指南（My Blog）
 
+> 2026-10-13：本文件保留历史迁移背景。新安装与常规配置请使用 [本地部署教程的 R2 章节](http://127.0.0.1:4390/deploy/#r2)（先运行 `node scripts/preview-deployment-guide.mjs`）。项目正式部署后，该教程位于博客 `/deploy/#r2`，包含凭据、公开域名、桌面配置和 GitHub 图床比较。
+
 本指南说明如何把文章内嵌图（原 base64 存库）与影集照片（原 Vercel Blob）统一切到 **Cloudflare R2**，彻底摆脱 Vercel Blob / 读库的访问次数与流量限流。
 
 > 本文档对应代码提交 `776ae4c`（`feat(images): 图片存储迁移到 Cloudflare R2`）。构建、迁移脚本均已随仓库推送。

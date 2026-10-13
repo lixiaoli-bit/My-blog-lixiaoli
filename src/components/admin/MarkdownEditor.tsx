@@ -435,6 +435,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(fun
    * 跳到第 nth 个（0 起）level 级标题（目录点击定位）。
    * 映射由 src/lib/heading-index.ts 提供（语法树扫描 + 序列对齐）。
    */
+  const navigatedHeadingRef = useRef<{ pos: number; level: number; text: string; nth: number } | null>(null);
   const jumpToHeading = useCallback(
     (level: number, nth: number, expectText?: string): boolean => {
       const view = viewRef.current;
@@ -449,6 +450,8 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(fun
         });
       }
       jumpToLine(view.state.doc.lineAt(hit.pos).number - 1);
+      navigatedHeadingRef.current = { pos: hit.pos, level, text: hit.text, nth };
+      onViewportHeadingRef.current?.({ level, text: hit.text, nth });
       return true;
     },
     [jumpToLine],
@@ -485,6 +488,15 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(fun
     if (!view) return null;
     const hits = scanHeadings(view.state);
     if (hits.length === 0) return null;
+    const target = navigatedHeadingRef.current;
+    if (target) {
+      const current = nthHeading(view.state, target.level, target.nth);
+      // Navigation chooses a heading even when it is centered below the viewport top.
+      // Keep that choice through CM's asynchronous scroll/height measurements.
+      // Explicit user scrolling/input resumes viewport-based tracking below.
+      if (current && current.pos === target.pos) return { level: current.level, text: current.text, nth: target.nth };
+      navigatedHeadingRef.current = null;
+    }
     // 编辑器内部滚动偏移 ≈ 可视区顶部的文档坐标（短文形态不滚，恒为文档首）
     const topPos = view.lineBlockAtHeight(view.scrollDOM.scrollTop + 2).from;
     const seen = new Map<number, number>();
@@ -513,6 +525,14 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(fun
   }, [emitViewportHeading]);
   const scheduleViewportHeadingRef = useRef(scheduleViewportHeading);
   scheduleViewportHeadingRef.current = scheduleViewportHeading;
+  useEffect(() => {
+    const resumeViewportTracking = (event: Event) => {
+      if (!(event.target instanceof Node) || !viewRef.current?.dom.contains(event.target)) return;
+      navigatedHeadingRef.current = null; scheduleViewportHeadingRef.current();
+    };
+    for (const type of ['wheel', 'touchstart', 'pointerdown', 'keydown', 'input']) document.addEventListener(type, resumeViewportTracking, { passive: true, capture: true });
+    return () => { for (const type of ['wheel', 'touchstart', 'pointerdown', 'keydown', 'input']) document.removeEventListener(type, resumeViewportTracking, true); };
+  }, []);
 
   /**
    * 视口锚点（模式切换定位用）。

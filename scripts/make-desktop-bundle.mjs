@@ -25,6 +25,8 @@ import ts from 'typescript';
 import { acquirePortableLock, bundlePath, readPortableProcesses, selectPortableTarget } from './portable-target.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
+const DIST = path.resolve(ROOT, process.env.BYQX_DESKTOP_DIST_DIR || 'dist');
+if (DIST !== path.join(ROOT, 'dist') && !DIST.startsWith(path.join(ROOT, '.diag') + path.sep)) throw new Error('独立桌面构建目录必须位于项目 .diag 内');
 /**
  * 先临时组装，再将成功产物替换到空闲的便携目录。
  */
@@ -81,7 +83,7 @@ function scanExternalImports(dir, out = new Set()) {
 
 /** 运行期依赖 = 产物扫描结果 + 惰性 require 的原生模块（变量间接引用，扫描看不到） */
 const RUNTIME_ROOTS = [
-  ...scanExternalImports(path.join(ROOT, 'dist', 'server')),
+  ...scanExternalImports(path.join(DIST, 'server')),
   'better-sqlite3',
   'sharp',
 ].sort();
@@ -195,9 +197,8 @@ renameSync(path.join(OUT, 'electron.exe'), path.join(OUT, '白衣卿相.exe'));
 console.log('✓ Electron 运行时已复制');
 
 // ── 2) 复制应用载荷 ────────────────────────────────────────────────────────
-for (const rel of ['dist', 'desktop']) {
-  cpSync(path.join(ROOT, rel), path.join(APP, rel), { recursive: true });
-}
+cpSync(DIST, path.join(APP, 'dist'), { recursive: true });
+cpSync(path.join(ROOT, 'desktop'), path.join(APP, 'desktop'), { recursive: true });
 writeFileSync(
   path.join(APP, 'package.json'),
   JSON.stringify(

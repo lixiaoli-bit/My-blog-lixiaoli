@@ -29,7 +29,9 @@ fs.writeFileSync(path.join(appData, 'byqx-blog-desktop/config.json'), JSON.strin
   SYNC_DATABASE_URL: 'postgresql://fixture:fixture@127.0.0.1:1/fixture', PORT: String(port),
 }));
 const bootstrap = path.join(run, 'bootstrap.cjs');
-fs.writeFileSync(bootstrap, `const {app}=require('electron');app.setPath('appData',${JSON.stringify(appData)});app.setPath('userData',${JSON.stringify(profile)});app.on('browser-window-created',(_,w)=>w.on('show',()=>w.hide()));process.argv=[process.argv[0]];const main=${JSON.stringify(path.join(payload, 'desktop/main.cjs'))};delete require.cache[require.resolve(main)];require(main);`);
+// Hidden QA windows must appear visible to the startup visibility watchdog.
+// Otherwise its delayed show/hide ends the native IME session during the CDP pause.
+fs.writeFileSync(bootstrap, `const {app}=require('electron');app.setPath('appData',${JSON.stringify(appData)});app.setPath('userData',${JSON.stringify(profile)});app.on('browser-window-created',(_,w)=>{w.on('show',()=>w.hide());w.isVisible=()=>true;});process.argv=[process.argv[0]];const main=${JSON.stringify(path.join(payload, 'desktop/main.cjs'))};delete require.cache[require.resolve(main)];require(main);`);
 const env = { ...process.env, BYQX_START_PATH: '/', BYQX_PI_AUTH_PATH: path.join(run, 'pi.json'), DATABASE_URL: `file:${db}`, DATABASE_URL_FALLBACK: '', SYNC_DATABASE_URL: '', SYNC_DATABASE_URL_FALLBACK: '' };
 delete env.ELECTRON_RUN_AS_NODE;
 const report = { directory, isolated: true, builtAt: new Date().toISOString(), cases: [], errors: [], matchedClientFiles: 0 };
@@ -43,7 +45,7 @@ const compareTree = (source, destination) => {
 };
 let app;
 try {
-  compareTree(path.join(root, 'dist/client'), path.join(payload, 'dist/client'));
+  compareTree(path.join(root, process.env.BYQX_DESKTOP_DIST_DIR || 'dist', 'client'), path.join(payload, 'dist/client'));
   for (const file of ['main.cjs', 'preload.cjs']) assert.equal(hash(path.join(root, 'desktop', file)), hash(path.join(payload, 'desktop', file)));
   assert.ok(fs.readFileSync(path.join(payload, 'dist/server/entry.mjs'), 'utf8').includes('runtimeAppRoot'));
   record('Packaged client and desktop shell match the current build; server paths use the package root');
@@ -102,6 +104,7 @@ try {
   await cdp.send('Input.imeSetComposition', { text: '中文', selectionStart: 2, selectionEnd: 2 });
   await page.waitForTimeout(450);
   assert.equal(await page.evaluate(() => document.activeElement === window.compositionCell), true);
+  assert.equal(await page.evaluate(() => window.compositionEvents.some(event => event.type === 'compositionend')), false, 'Composition must stay active during the pause');
   await cdp.send('Input.insertText', { text: '中文' });
   await page.waitForTimeout(400);
   report.compositionEvents = await page.evaluate(() => window.compositionEvents);

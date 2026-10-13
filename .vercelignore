@@ -17,8 +17,10 @@ dist/
 .codex-remote-attachments/
 .workbuddy/
 .workbuddy-ai/
+.workbuddy-tmp/
 .android-tools/
 android/
+android-native/
 release/
 outputs/
 /data/
@@ -32,12 +34,6 @@ showcase-site/
 *.log
 *.tar.gz
 LXGWWenKaiScreen.ttf
-release/**
-.diag/**
 lh-*.json
-promo-video.mp4
-LXGWWenKaiScreen.subset.woff2
 *.exe
 *.blockmap
-**/*.exe
-**/*.blockmap

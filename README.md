@@ -121,7 +121,7 @@ pnpm dev
 
 ### 使用 Windows 便携版
 
-当前项目版本为 `1.1.3`，本次便携构建以日期和目录区分：`release/portable-input-20261012/白衣卿相.exe`。先保存并完全退出旧版，再启动新包；必须保留整个便携目录及 `resources`。桌面数据与配置仍由用户自己的配置目录管理，验证脚本使用独立配置和测试数据。
+当前桌面版本为 `1.1.4`，正式发行仅支持 Windows x64。安装包与便携 ZIP 见 [GitHub Releases](https://github.com/shijing-lu/My-blog/releases/latest)。先保存并通过托盘退出旧版，再安装或启动新包；便携版必须完整解压并保留整个目录及 `resources`。桌面数据与配置保存在 `%APPDATA%\byqx-blog-desktop\`，验证脚本使用独立配置和测试数据。开发构建与维护见 [桌面端说明](desktop/README.md)。
 
 在文档页登录后，将左侧文章旁的 ↗ 手柄拖到资源管理器的文件夹空白处或桌面，即可导出 Markdown。初次准备较慢时会提示稍后重新拖动；点击手柄可直接下载。原生拖出只能在 Windows 桌面客户端使用。
 
@@ -205,7 +205,15 @@ pnpm dev
 
 ## 🚢 部署
 
-部署到 Vercel（Serverless），详细步骤见 **[docs/DEPLOY.md](docs/DEPLOY.md)**：
+部署教程已做成自包含网页：**[本地部署手册](http://127.0.0.1:4390/deploy/)**。在仓库根目录运行 `node scripts/preview-deployment-guide.mjs` 后打开链接；无需数据库或云账号。也可运行 `pnpm dev` 后访问 [项目内教程](http://localhost:4321/deploy/)。网页源码在 [public/deploy/index.html](public/deploy/index.html)，包含桌面本地安装、桌面云端配置、Web 部署、域名、R2、GitHub 图床、可选备库与逐步验收。
+
+目前先交付本地开发版本，**没有发布线上**。以后部署这个版本后，教程地址为 `https://你的博客域名/deploy/`。桌面端首次使用与“设置 → 云端同步”均可打开本机分发的教程。
+
+新版桌面端首次启动自动生成 SQLite 和随机本地身份，可选择“本地使用”或“查看云端部署教程”；原有用户的配置与文章保留。便携包需保留完整目录。此次产物目录为 `release/portable-deploy-20261013/`，实际验证记录见 [此次适配说明](docs/deployment-guide-and-editor-fixes-20261013.md)。
+
+Web 默认方案是 **Vercel（网站/API）+ PostgreSQL 主库（推荐 Neon）**；备库可不配置。图片上传选择 **Cloudflare R2 或 GitHub 图床**：未启用图床时走 R2，图片字节不存 PostgreSQL。两者都不配置时仅能引用已有图片 URL。R2 是对象存储，不是数据库。
+
+部署到 Vercel（Serverless），详细步骤以网页手册为主，另见 **[docs/DEPLOY.md](docs/DEPLOY.md)**：
 
 1. Fork / 导入本仓库到 Vercel；
 2. 创建 PostgreSQL 数据库（推荐 [Neon](https://neon.tech)），配置环境变量（见上表）；

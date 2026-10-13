@@ -6,7 +6,7 @@
  */
 import type { APIRoute } from 'astro';
 import { badJson, guardManager, json, readJson } from '@/lib/api';
-import { clearSiteFonts, saveSiteFonts } from '@/lib/fonts';
+import { buildFontCss, clearSiteFonts, getFontsByIds, saveSiteFonts } from '@/lib/fonts';
 import type { SiteFonts } from '../../../db/types';
 
 export const prerender = false;
@@ -18,7 +18,8 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
   if (!body) return badJson();
   try {
     const saved = await saveSiteFonts(body);
-    return json({ fonts: saved });
+    const custom = await getFontsByIds([saved.article, saved.ui].filter(f => f.type === 'custom').map(f => f.value));
+    return json({ fonts: saved, css: buildFontCss(saved, custom) });
   } catch (err) {
     console.error('[api/fonts-settings]', err);
     return json({ error: '保存失败' }, 500);

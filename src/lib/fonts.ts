@@ -14,10 +14,10 @@ import type { BlogFont, FontChoice, SiteFonts } from '../../db/types';
 /** 字体设置键 */
 const SETTINGS_KEY = 'site_fonts';
 
-/** 默认：系统无衬线（正文）+ Lora（标题/装饰） */
+/** 未单独选择：文章跟随全局；全局使用当前界面默认字体。 */
 export const DEFAULT_FONTS: SiteFonts = {
-  article: { type: 'system', value: 'sans' },
-  ui: { type: 'builtin', value: 'lora' },
+  article: { type: 'inherit', value: '' },
+  ui: { type: 'inherit', value: '' },
 };
 
 /** 内置字体清单（设置页下拉展示） */
@@ -38,6 +38,7 @@ export const SYSTEM_FONTS: { key: string; label: string; stack: string }[] = [
 /** 校验字体选择 */
 function normalizeChoice(input: unknown): FontChoice {
   const c = (input ?? {}) as Partial<FontChoice>;
+  if (!input || c.type === 'inherit') return { type: 'inherit', value: '' };
   const type = c.type === 'builtin' || c.type === 'custom' ? c.type : 'system';
   const value = typeof c.value === 'string' && c.value.trim() !== '' ? c.value.trim().slice(0, 200) : 'sans';
   return { type, value };
@@ -228,19 +229,17 @@ function fontFaceCss(font: BlogFont): string {
  * --font-pixel-family：claude-pixel/terminal=像素、graphite=等宽等）。
  */
 export function buildFontCss(fonts: SiteFonts, customFonts: BlogFont[]): string {
-  const faces = customFonts.map((f) => fontFaceCss(f)).join('');
-  const article = choiceStack(fonts.article, customFonts);
-  const ui = choiceStack(fonts.ui, customFonts);
-  // 字号缩放：html font-size = scale%，Tailwind 的 rem 全站等比缩放（解决部分字体字面偏小的问题）
-  const size =
-    fonts.scale && fonts.scale !== 100 ? `html{font-size:${fonts.scale}% !important;}` : '';
-  return `${faces}${size}html{--font-sans-family:${article} !important;--font-display-family:${ui} !important;--font-pixel-family:${ui} !important;}`;
+  const used = [fonts.article, fonts.ui].filter(f => f.type === 'custom').map(f => f.value);
+  const faces = customFonts.filter(f => used.includes(f.id)).map(fontFaceCss).join('');
+  const global = fonts.ui.type === 'inherit' ? '' : choiceStack(fonts.ui, customFonts);
+  const article = fonts.article.type === 'inherit' ? global : choiceStack(fonts.article, customFonts);
+  const shell = global ? `html{--neo-font:${global} !important;--font-sans-family:${global} !important;--font-display-family:${global} !important;--font-pixel-family:${global} !important;}body{font-family:${global};}` : '';
+  const scale = fonts.scale && fonts.scale !== 100 ? `font-size:${fonts.scale}% !important;` : '';
+  const reading = article ? `--font-sans-family:${article};--font-display-family:${article};--font-pixel-family:${article};font-family:${article} !important;` : '';
+  return `${faces}${shell}.prose,.doc-ie-view .cm-editor{${reading}${scale}}${article ? '.prose :is(h1,h2,h3,h4,h5,h6),.doc-ie-view .cm-content{font-family:inherit !important;}' : ''}`;
 }
 
-/** New shell typography is fixed; preserve only the configured reading face and scale. */
+/** Compatibility export for layouts; global and reading choices share one cascade. */
 export function buildArticleFontCss(fonts: SiteFonts, customFonts: BlogFont[]): string {
-  const faces = customFonts.filter(font => fonts.article.type === 'custom' && font.id === fonts.article.value).map(fontFaceCss).join('');
-  const article = choiceStack(fonts.article, customFonts);
-  const scale = fonts.scale && fonts.scale !== 100 ? `font-size:${fonts.scale}% !important;` : '';
-  return `${faces}.prose{--font-sans-family:${article};font-family:${article};${scale}}`;
+  return buildFontCss(fonts, customFonts);
 }

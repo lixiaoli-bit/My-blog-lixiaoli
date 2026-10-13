@@ -19,7 +19,11 @@ const { existsSync, mkdirSync, readdirSync, copyFileSync, rmSync } = await impor
 const path = await import('node:path');
 
 const ROOT = path.resolve(import.meta.dirname, '..');
-const ASTRO_DIR = path.join(ROOT, 'dist', 'client', '_astro');
+// 发布构建使用独立目录，避免把历史前端资源带进安装包。
+const DIST = path.resolve(ROOT, process.env.BYQX_DESKTOP_DIST_DIR || 'dist');
+const isolated = DIST !== path.join(ROOT, 'dist');
+if (isolated && !DIST.startsWith(path.join(ROOT, '.diag') + path.sep)) throw new Error('独立桌面构建目录必须位于项目 .diag 内');
+const ASTRO_DIR = path.join(DIST, 'client', '_astro');
 /** 构建期间暂存旧资源的目录（放在 dist 之外，避免被 astro build 清空） */
 const STASH = path.join(ROOT, '.diag', 'stale-assets');
 
@@ -66,16 +70,16 @@ function restoreStaleAssets() {
   }
 }
 
-const stashed = stashStaleAssets();
+const stashed = isolated ? 0 : stashStaleAssets();
 if (stashed > 0) console.log(`[build:desktop] 暂存旧前端资源 ${stashed} 个（供运行中实例继续引用）`);
 
-const result = spawnSync(process.execPath, ['node_modules/astro/bin/astro.mjs', 'build'], {
+const result = spawnSync(process.execPath, ['node_modules/astro/bin/astro.mjs', 'build', '--outDir', DIST], {
   stdio: 'inherit',
   env: process.env,
   shell: false,
 });
 
-if (result.status === 0) {
+if (result.status === 0 && !isolated) {
   const restored = restoreStaleAssets();
   if (restored > 0) {
     console.log(`[build:desktop] 已合并回上一版资源 ${restored} 个 → 运行中的实例不会因资源 404 而失效`);

@@ -106,6 +106,7 @@ const navItems = getSettingsSections(serverEnv('DESKTOP_MODE') === '1');
     if (!dialog) return;
     if (!dialog.querySelector(`[data-settings-section="${CSS.escape(key)}"]`)) key = 'site-name';
     dialog.dataset.activeSection = key;
+    document.dispatchEvent(new CustomEvent('byqx:settings-section-change', { detail: { section: key } }));
     dialog.scrollLeft = 0;
     // 1) 导航高亮
     dialog.querySelectorAll<HTMLElement>('#settings-modal-nav .settings-nav-item').forEach((btn) => {

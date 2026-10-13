@@ -373,16 +373,16 @@ export interface BlogFont {
 
 /** 字体选择：system=系统字体栈 | builtin=内置字体 | custom=自定义导入字体 */
 export interface FontChoice {
-  type: 'system' | 'builtin' | 'custom';
-  /** system: 栈名（sans/serif/mono）；builtin: 内置名；custom: fonts.id */
+  type: 'inherit' | 'system' | 'builtin' | 'custom';
+  /** inherit: 跟随全局/默认；system: 栈名；builtin: 内置名；custom: fonts.id */
   value: string;
 }
 
-/** 全局字体设置（文章字体 + 其他字体） */
+/** 文章字体与全局 UI 字体；文章选择 inherit 时跟随 ui。 */
 export interface SiteFonts {
   article: FontChoice;
   ui: FontChoice;
-  /** 全局字号缩放百分比（80–150，缺省 100；html font-size 缩放，rem 全站等比生效） */
+  /** 文章阅读字号缩放百分比（80–150，缺省 100）。 */
   scale?: number;
 }
 

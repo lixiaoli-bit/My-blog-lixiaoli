@@ -1,11 +1,13 @@
 # Vercel 部署指南（My Blog）
 
-本指南覆盖：数据库（**主备双库**：Vercel/Neon 主库 + Supabase 从库）→ 环境变量 → 评论与 GitHub 登录 → Vercel 导入与构建 → 验证。
+> 2026-10-13：新的逐步部署教程已移到项目自带网页。运行 `node scripts/preview-deployment-guide.mjs` 后打开 [本地部署手册](http://127.0.0.1:4390/deploy/)，正式部署该版本后访问自己域名的 `/deploy/`。下方保留旧部署记录；其中价格、平台菜单与旧迁移流程不作为当前教程依据。
+
+当前默认方案为 Vercel 网站/API + Neon PostgreSQL 主库。**备库可以不配置**。R2 是图片对象存储，GitHub 图床是可选替代方案。Vercel 不在函数本地磁盘上持久保存 SQLite。最新步骤、环境变量、Corepack/Node 配置、域名和桌面同步说明见上述网页。
 
 ## 1. 数据库（主备双库）
 
-- **主库**：Vercel/Neon Postgres（或你现有的 Vercel Postgres），免费档即可。
-- **从库（推荐）**：Supabase 免费档，主库查询出错时自动切换（见 2 的说明）。
+- **主库**：独立 PostgreSQL（默认教程使用 Neon），可通过 Vercel Marketplace 集成；额度和费用以服务商当前套餐为准。
+- **备库（可选）**：另一兼容 PostgreSQL 端点，主库查询出错时自动切换（见 2 的说明）。
 - 两库 schema 与数据需保持一致（建表/迁移/图片迁移都要对两个库各执行一次）。
 - 图片字节存 **Cloudflare R2**（见 `docs/R2-DEPLOY.md`），DB 只存元数据。
 

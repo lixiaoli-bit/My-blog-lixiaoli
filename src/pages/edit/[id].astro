@@ -6,6 +6,7 @@ import HomeArticleSettings from '@/components/article/HomeArticleSettings';
 import HomeArticleFolderDialog from '@/components/article/HomeArticleFolderDialog.astro';
 import ExportMenu from '@/components/ExportMenu.astro';
 import ArticleCoverGenerator from '@/components/article/ArticleCoverGenerator';
+import ArticleCoverUpload from '@/components/article/ArticleCoverUpload';
 import { isTopAdmin } from '@/lib/admin-auth';
 import { getArticleById, listAdminArticleMeta } from '@/lib/articles';
 import { articleCategoryMap, listArticleCategories } from '@/lib/article-categories';
@@ -80,6 +81,7 @@ const settingsArticle = {
       <button id="doc-inline-source" type="button" aria-pressed="false" class="mt-2 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground">源码模式</button>
       <ExportMenu mdUrl={`/api/export/article/${encodeURIComponent(article.slug)}`} class="mt-1.5" />
       {isOwner && <ArticleCoverGenerator client:load articleId={article.id} />}
+      {isOwner && <ArticleCoverUpload client:load articleId={article.id} />}
     </Fragment>
     <Fragment slot="editor"><DocInlineEditor client:load /></Fragment>
   </ArticleDetailShell>

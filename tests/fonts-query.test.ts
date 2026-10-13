@@ -47,4 +47,21 @@ describe('字体 SSR 读取', () => {
     expect(await getFontsByIds([])).toEqual([]);
     expect(queries).toEqual([]);
   });
+  it('only setting the global font makes article and interface inherit it', () => {
+    const css = buildFontCss({ article: { type: 'inherit', value: '' }, ui: { type: 'system', value: 'mono' } }, []);
+    expect(css).toContain('--neo-font:ui-monospace');
+    expect(css).toContain('.prose,.doc-ie-view .cm-editor{--font-sans-family:ui-monospace');
+  });
+  it('article override does not replace the global UI font', () => {
+    const css = buildFontCss({ article: { type: 'system', value: 'serif' }, ui: { type: 'system', value: 'mono' } }, []);
+    expect(css).toContain('--neo-font:ui-monospace');
+    expect(css).toContain('.prose,.doc-ie-view .cm-editor{--font-sans-family:Georgia');
+    expect(css).not.toContain('--neo-font:Georgia');
+  });
+  it('both unset retain default fonts; old missing article field inherits global', async () => {
+    const css = buildFontCss({ article: { type: 'inherit', value: '' }, ui: { type: 'inherit', value: '' } }, []);
+    expect(css).not.toContain('font-family:');
+    sqlite.prepare('INSERT INTO settings VALUES (?, ?, ?)').run('site_fonts', JSON.stringify({ ui: { type: 'system', value: 'serif' } }), 0);
+    expect((await getSiteFontState()).fonts.article.type).toBe('inherit');
+  });
 });

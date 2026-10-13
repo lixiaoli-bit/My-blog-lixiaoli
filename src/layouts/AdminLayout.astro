@@ -55,7 +55,7 @@ const siteUiStyle = await getSiteUiStyle();
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <ThemeHead defaultStyle={siteUiStyle} />
     {/* 手动字体设置覆盖（仅设置过时注入；未设置则跟随主题） */}
-    {fontCss !== '' && <style data-classic-style set:html={fontCss} />}
+    {fontCss !== '' && <style id="site-font-overrides" set:html={fontCss} />}
     {/* 全站文字样式（内置默认包 + 自定义）：后台与前台共用同一套文字观感 */}
     <SiteTextStyles />
     <script is:inline>window.__applyUiStyleHead?.();</script>
