@@ -42,7 +42,7 @@ jobs:
           function rtk { $program=$args[0]; $argv=@($args | Select-Object -Skip 1); & $program @argv; if($LASTEXITCODE -ne 0) { throw "$program failed: $LASTEXITCODE" } }
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
           if ($env:RELEASE_TAG -ne "v$version") { throw 'Tag and package version differ' }
-          rtk pnpm install --frozen-lockfile
+          rtk pnpm install --frozen-lockfile --fetch-timeout=600000 --fetch-retries=3
           rtk pnpm check
           rtk pnpm test
           rtk pnpm run build:portable -- --target windows-release
