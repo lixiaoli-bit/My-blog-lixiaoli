@@ -49,6 +49,7 @@ jobs:
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
           if ($env:RELEASE_TAG -ne "v$version") { throw 'Tag and package version differ' }
           rtk pnpm install --frozen-lockfile --fetch-timeout=600000 --fetch-retries=3
+          rtk node node_modules/electron/install.js
           rtk pnpm check
           rtk pnpm run desktop:template
           $unitDb = Join-Path (Get-Location).Path '.diag/ci-unit.db'
