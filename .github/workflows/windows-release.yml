@@ -72,7 +72,9 @@ jobs:
           $ErrorActionPreference = 'Stop'
           function rtk { $program=$args[0]; $argv=@($args | Select-Object -Skip 1); & $program @argv; if($LASTEXITCODE -ne 0) { throw "$program failed: $LASTEXITCODE" } }
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY *> $null
-          if ($LASTEXITCODE -ne 0) { rtk gh release create $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --verify-tag --draft --title "$($env:RELEASE_TAG) · Windows 桌面版" --notes-file "docs/releases/$($env:RELEASE_TAG).md" }
+          $release = $null
+          try { $release = rtk gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --json isDraft | ConvertFrom-Json } catch { }
+          if ($release -and -not $release.isDraft) { throw 'Release already published; refusing to replace it' }
+          if (-not $release) { rtk gh release create $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --verify-tag --draft --title "$($env:RELEASE_TAG) · Windows 桌面版" --notes-file "docs/releases/$($env:RELEASE_TAG).md" }
           rtk gh release upload $env:RELEASE_TAG "release/assets/My-Blog-$version-Windows-x64-Setup.exe" "release/assets/My-Blog-$version-Windows-x64-Portable.zip" release/assets/SHA256SUMS.txt --repo $env:GITHUB_REPOSITORY --clobber
           rtk gh release edit $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --draft=false --latest --title "$($env:RELEASE_TAG) · Windows 桌面版" --notes-file "docs/releases/$($env:RELEASE_TAG).md"

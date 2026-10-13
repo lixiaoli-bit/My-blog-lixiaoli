@@ -42,6 +42,8 @@ pnpm exec electron-builder --win nsis --x64 --prepackaged release/win-unpacked -
 
 发布前更新 `package.json` 与 `public/desktop-version.json` 的版本，验证安装包及便携包，将 Windows 文件和 SHA-256 校验表上传到 GitHub Release。源码的 Android、宣传站与宣传视频工程继续保留，它们不进入 Windows Release。
 
+`.github/workflows/windows-release.yml` 可在 GitHub 的 Actions → Windows Release 中输入已有版本标签后运行；后续 `v*` 标签也会触发。流程在 Windows 上安装锁定依赖、检查代码、测试、生成空库和桌面包、验证实际程序，最后以仓库自带的临时令牌上传 Windows 安装包、便携 ZIP 及校验表。已发布的同名 Release 不会被覆盖。构建阶段不注入发布令牌，不需要本机上传大文件，也不需要新增个人访问令牌。
+
 ## 开发入口
 
 - `desktop/main.cjs`：窗口、托盘、认证和同步触发。
