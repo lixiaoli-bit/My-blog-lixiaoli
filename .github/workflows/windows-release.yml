@@ -26,6 +26,7 @@ jobs:
       RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
       BYQX_DESKTOP_DIST_DIR: .diag/windows-release-dist
       TZ: Asia/Shanghai
+      HARNESS_REF: ${{ github.sha }}
     steps:
       - name: Preserve repository fixture line endings
         shell: pwsh
@@ -51,6 +52,8 @@ jobs:
           rtk pnpm install --frozen-lockfile --fetch-timeout=600000 --fetch-retries=3
           rtk node node_modules/electron/install.js
           rtk pnpm check
+          rtk git fetch --no-tags --depth=1 origin $env:HARNESS_REF
+          rtk node --input-type=module -e "import fs from 'node:fs'; import {execFileSync} from 'node:child_process'; for(const file of ['scripts/verify-editor-portable.mjs','scripts/verify-deployment-fixes.mjs']) fs.writeFileSync(file,execFileSync('git',['show',process.env.HARNESS_REF+':'+file]));"
           rtk pnpm run desktop:template
           $unitDb = Join-Path (Get-Location).Path '.diag/ci-unit.db'
           Copy-Item -LiteralPath desktop/assets/template.db -Destination $unitDb

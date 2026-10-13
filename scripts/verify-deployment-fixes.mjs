@@ -50,6 +50,10 @@ try {
   }
   for (const [level, nth] of [[4, 2], [4, 3], [4, 4], [3, 6], [4, 7]]) {
     const target = page.locator(`#doc-toc-list a.toc-l${level}`).nth(nth);
+    if (!await target.isVisible()) {
+      if (await page.locator('#doc-toc-fab').isVisible()) await page.locator('#doc-toc-fab').click();
+      else await page.locator('#doc-toc-toggle').click();
+    }
     await target.click();
     await page.waitForFunction(({ level, nth }) => document.querySelectorAll(`#doc-toc-list a.toc-l${level}`)[nth]?.classList.contains('toc-active'), { level, nth });
     await page.waitForTimeout(350); assert.equal(await target.evaluate(el => el.classList.contains('toc-active')), true);
@@ -129,7 +133,12 @@ try {
     else await page.locator('#doc-toc-toggle').click();
   }
   for (const nth of [3, 4, 7]) {
-    const target = page.locator('#doc-toc-list a.toc-l4').nth(nth); await target.click();
+    const target = page.locator('#doc-toc-list a.toc-l4').nth(nth);
+    if (!await target.isVisible()) {
+      if (await page.locator('#doc-toc-fab').isVisible()) await page.locator('#doc-toc-fab').click();
+      else await page.locator('#doc-toc-toggle').click();
+    }
+    await target.click();
     await page.waitForFunction(nth => document.querySelectorAll('#doc-toc-list a.toc-l4')[nth]?.classList.contains('toc-active'), nth);
     await page.waitForTimeout(350); assert.equal(await target.evaluate(el => el.classList.contains('toc-active')), true);
   }
